@@ -1,4 +1,5 @@
 #include "../inc/assembler.hpp"
+#include <fstream>
 
 using namespace std;
 /*
@@ -14,11 +15,95 @@ map<int, Section *> *allSections = new map<int, Section *>();
 map<string, SymbolTableEntry *> *symbolTable = new map<string, SymbolTableEntry *>();
 map<string, LiteralPoolEntry *> *literalPool = new map<string, LiteralPoolEntry *>();
 std::vector<string> literalInsertionOrder;
+string outputName = "output.o";
 
 Section *currSection = nullptr;
 int locationCounter = 0;
 
 /*--- POMOCNE FUNKCIJE ---*/
+
+void write_binary_output(const string& filename) {
+  ofstream out(filename, ios::binary);
+  if (!out) {
+    cerr << "Greška: Ne mogu da otvorim binarni fajl za pisanje!" << endl;
+    return;
+  }
+
+  // 1. Sekcije
+  size_t numSections = allSections->size();
+  out.write((char*)&numSections, sizeof(size_t));
+
+  for (map<int, Section*>::iterator it = allSections->begin(); it != allSections->end(); ++it) {
+    Section* sec = it->second;
+    size_t nameLen = sec->name.size();
+    out.write((char*)&nameLen, sizeof(size_t));
+    out.write(sec->name.c_str(), nameLen);
+
+    out.write((char*)&sec->idSymbolTable, sizeof(uint32_t));
+    uint32_t codeSize = sec->code->size();
+    out.write((char*)&codeSize, sizeof(uint32_t));
+    out.write((char*)sec->code->data(), codeSize);
+  }
+
+  // 2. Tabela simbola
+  size_t numSymbols = symbolTable->size();
+  out.write((char*)&numSymbols, sizeof(size_t));
+
+  for (map<string, SymbolTableEntry*>::iterator it = symbolTable->begin(); it != symbolTable->end(); ++it) {
+    const string& name = it->first;
+    SymbolTableEntry* sym = it->second;
+
+    size_t nameLen = name.size();
+    out.write((char*)&nameLen, sizeof(size_t));
+    out.write(name.c_str(), nameLen);
+
+    out.write((char*)&sym->id, sizeof(uint32_t));
+    out.write((char*)&sym->ndx, sizeof(uint32_t));
+    out.write((char*)&sym->value, sizeof(uint32_t));
+    uint8_t bind = (uint8_t)sym->bind;
+    out.write((char*)&bind, sizeof(uint8_t)); // LCL=0, GLBL=1, EXTRN=2
+  }
+
+  // 3. Tabele relokacija
+  size_t numRelocTables = allSections->size();
+  out.write((char*)&numRelocTables, sizeof(size_t));
+
+  for (map<int, Section*>::iterator it = allSections->begin(); it != allSections->end(); ++it) {
+    Section* sec = it->second;
+    vector<RelocationTableEntry*>& relocs = *sec->relocationTableForSection;
+    size_t numRelocs = relocs.size();
+    out.write((char*)&numRelocs, sizeof(size_t));
+
+    for (size_t i = 0; i < numRelocs; ++i) {
+      RelocationTableEntry* rel = relocs[i];
+
+      // Nađi ime simbola po ID-ju
+      string symName = "";
+      for (map<string, SymbolTableEntry*>::iterator symIt = symbolTable->begin(); symIt != symbolTable->end(); ++symIt) {
+        if (symIt->second->id == rel->idSymbol) {
+          symName = symIt->first;
+          break;
+        }
+      }
+
+      size_t symNameLen = symName.size();
+      out.write((char*)&symNameLen, sizeof(size_t));
+      out.write(symName.c_str(), symNameLen);
+
+      out.write((char*)&rel->idSymbol, sizeof(uint32_t));
+      out.write((char*)&rel->section, sizeof(uint32_t));
+      out.write((char*)&rel->offset, sizeof(uint32_t));
+      out.write((char*)&rel->addend, sizeof(uint32_t));
+      uint8_t relType = (uint8_t)rel->type;
+      out.write((char*)&relType, sizeof(uint8_t));
+    }
+  }
+
+  out.close();
+  cout << "✔️ Binarni izlaz upisan u fajl '" << filename << "'" << endl;
+}
+
+
 
 void printSymbolTable()
 {
@@ -91,7 +176,6 @@ void printLiteralPool()
   }
   cout << "---------------------" << endl;
 }
-
 
 void printRelocationTable()
 {
@@ -177,45 +261,45 @@ void write_to_memory_data(int sectionId, int offset, int value)
   (*section->code)[offset + 3] = ((value >> 24) & 0xFF);
 }
 
-void write_to_memory_data_long(int sectionId, int offset, unsigned long value) {
-    // Pronalazimo sekciju sa datim ID-jem
-    uint32_t truncated = static_cast<uint32_t>(value);
+void write_to_memory_data_long(int sectionId, int offset, unsigned long value)
+{
+  // Pronalazimo sekciju sa datim ID-jem
+  uint32_t truncated = static_cast<uint32_t>(value);
 
-    Section *section = nullptr;
-    for (auto &entry : *allSections)
+  Section *section = nullptr;
+  for (auto &entry : *allSections)
+  {
+    if (entry.second->idSymbolTable == sectionId)
     {
-      if (entry.second->idSymbolTable == sectionId)
-      {
-        section = entry.second;
-        break;
-      }
+      section = entry.second;
+      break;
     }
-  
-    // Ako sekcija nije pronađena, ispisujemo grešku
-    if (!section)
-    {
-      cerr << "Greška: Sekcija sa ID " << sectionId << " ne postoji!" << endl;
-      return;
-    }
-  
-    if (!section->code)
-    {
-      cerr << "Greška: Sekcija '" << section->name << "' nema alociranu memoriju!" << endl;
-      return;
-    }
-  
-    if (offset + 3 >= section->code->size())
-    {
-      section->code->resize(offset + 4, 0);
-    }
-  
-    // Upis vrednosti u memoriju (pretpostavljamo Little Endian format)
-    (*section->code)[offset] = static_cast<unsigned char>(truncated & 0xFF);
-    (*section->code)[offset + 1] = static_cast<unsigned char>((truncated >> 8) & 0xFF);
-    (*section->code)[offset + 2] = static_cast<unsigned char>((truncated >> 16) & 0xFF);
-    (*section->code)[offset + 3] = static_cast<unsigned char>((truncated >> 24) & 0xFF);
+  }
+
+  // Ako sekcija nije pronađena, ispisujemo grešku
+  if (!section)
+  {
+    cerr << "Greška: Sekcija sa ID " << sectionId << " ne postoji!" << endl;
+    return;
+  }
+
+  if (!section->code)
+  {
+    cerr << "Greška: Sekcija '" << section->name << "' nema alociranu memoriju!" << endl;
+    return;
+  }
+
+  if (offset + 3 >= section->code->size())
+  {
+    section->code->resize(offset + 4, 0);
+  }
+
+  // Upis vrednosti u memoriju (pretpostavljamo Little Endian format)
+  (*section->code)[offset] = static_cast<unsigned char>(truncated & 0xFF);
+  (*section->code)[offset + 1] = static_cast<unsigned char>((truncated >> 8) & 0xFF);
+  (*section->code)[offset + 2] = static_cast<unsigned char>((truncated >> 16) & 0xFF);
+  (*section->code)[offset + 3] = static_cast<unsigned char>((truncated >> 24) & 0xFF);
 }
-
 
 int calculate_addend(int relocationType, SymbolTableEntry *symbol)
 {
@@ -359,7 +443,7 @@ void process_END_DIR()
             {
               // pregazi opcode tako da bude pc rel
               relocValue = sym->second->value - (ref->offset - 2) - 4; // PROVERI FORMULU
-              //cout << "VREDNOST SIMBOLA: " << sym->second->value << " , VREDNOST ref->offset: " << ref->offset << endl;
+              // cout << "VREDNOST SIMBOLA: " << sym->second->value << " , VREDNOST ref->offset: " << ref->offset << endl;
               (*targetSection->code)[ref->offset - 2] = ref->patchCode1;
               //(*targetSection->code)[ref->offset - 1] = ref->patchCode2;
             }
@@ -375,7 +459,7 @@ void process_END_DIR()
         {
           unsigned long value = stoul(key, nullptr, 0);
           write_to_memory_data_long(currSection->idSymbolTable, locationCounter, value);
-          //cout << "Upisujemo vrednost literala u bazen: " << value << "za key: " << key << endl;
+          // cout << "Upisujemo vrednost literala u bazen: " << value << "za key: " << key << endl;
         }
         else
         {
@@ -394,13 +478,13 @@ void process_END_DIR()
           {
             currSection->size -= 4;
             currSection->literalPoolSize -= 4;
-            //cout << "Ne pisemo vrednost simbola u bazen jer je patched up: " << key << endl;
+            // cout << "Ne pisemo vrednost simbola u bazen jer je patched up: " << key << endl;
             continue;
           }
           else
           {
             // Globalan ili simbol iz druge sekcije → relokacija
-            //cout << "Ostavljamo mesta za vrednost simbola koji ce linker prepraviti u bazenu za key: " << key << endl;
+            // cout << "Ostavljamo mesta za vrednost simbola koji ce linker prepraviti u bazenu za key: " << key << endl;
             write_to_memory_data(currSection->idSymbolTable, locationCounter, 0);
 
             if (symbol->value != -1)
@@ -442,14 +526,14 @@ void process_END_DIR()
 
       if (symbol->value != -1 && symbol->ndx == forwardRef->section && forwardRef->type == 0 && symbol->bind == 1)
       {
-        //cout << "→ Upis u memoriju (local symbol PC-relative)" << endl;
+        // cout << "→ Upis u memoriju (local symbol PC-relative)" << endl;
 
         int val = symbol->value - forwardRef->offset - 4;
         write_to_memory_data(forwardRef->section, forwardRef->offset, val);
       }
       else
       {
-        //cout << "→ Kreiraj relokaciju" << endl;
+        // cout << "→ Kreiraj relokaciju" << endl;
 
         if (allSections->find(forwardRef->section) != allSections->end())
         {
@@ -473,6 +557,8 @@ void process_END_DIR()
       it = symbol->flink->erase(it);
     }
   }
+
+  write_binary_output(outputName);
 
   // 3️⃣ ISPIS ZA TESTIRANJE
   printSymbolTable();
@@ -1939,7 +2025,6 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
       return;
     }
 
-
     if (value >= 0 && value <= 0xFFF)
     {
       // Može da stane u 12 bita → direktno kodiranje u instrukciju
@@ -2030,7 +2115,6 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
 
       helper->setPatchOpcode(0x91);
 
-
       // Placeholder instrukcija → biće patchovana u .end
       currSection->code->push_back(0x92);
       currSection->code->push_back((dstReg << 4) | 0x0F);
@@ -2083,7 +2167,6 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
       {
         (*literalPool)[key]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
       }
-
 
       // Instrukcija 1: dstReg <literal>= mem32[pc + offset] (učitava adresu tj literal iz bazena)
       currSection->code->push_back(0x92);
@@ -2295,7 +2378,6 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
     cerr << "Nevalidan dstReg u LD instrukciji" << endl;
     exit(-1);
   }
-
 
   string operand = *arg->argName->at(0);
   int type = arg->argType->at(0);
