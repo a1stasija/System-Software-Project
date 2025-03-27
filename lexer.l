@@ -54,9 +54,9 @@
 
 "r0"|"r1"|"r2"|"r3"|"r4"|"r5"|"r6"|"r7"|"r8"|"r9"|"r10"|"r11"|"r12"|"r13" { yylval.psval = new string(yytext); return REGISTER; }
 
-"sp"|"r14" {return SP_REGISTER; }
+"sp"|"r14" { yylval.psval = new string("r14"); return SP_REGISTER; }
 
-"pc"|"r15" { return PC_REGISTER; }
+"pc"|"r15" { yylval.psval = new string("r15"); return PC_REGISTER; }
 
 "%status"|"%handler"|"%cause" { yylval.psval = new string(yytext); return SPEC_REGISTER;}
 
@@ -68,7 +68,7 @@
 
 [\t]      ; // Ignoriši beline
 
-#.*       ; // Ignoriši komentare (jednolinijski, završava se sa \n)
+#.*      {return NEWLINE;} // Ignoriši komentare (jednolinijski, završava se sa \n)
 
 . ;
 

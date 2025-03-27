@@ -103,8 +103,8 @@ instruction:
 
 gpr:
   PERCENT REGISTER { $$ = $2; }
-  | PERCENT SP_REGISTER { $$ = $2;}
-  | PERCENT PC_REGISTER { $$ = $2;}
+  | PERCENT SP_REGISTER { $$ = $2; }
+  | PERCENT PC_REGISTER { $$ = $2; }
 ;
 
 csr:
@@ -133,9 +133,9 @@ operand:
   | LITERAL {$$ = new Arguments($1,0,AddressingMode::MEMORY_DIRECT_LITERAL);}
   | SYMBOL {$$ = new Arguments($1,1,AddressingMode::MEMORY_DIRECT_SYMBOL);}
   | PERCENT REGISTER {$$ = new Arguments($2,2,AddressingMode::REGISTER_DIRECT);}
-  | LBRACKET PERCENT REGISTER RBRACKET {$$ = new Arguments($3,2,AddressingMode::REGISTER_INDIRECT);}
-  | LBRACKET PERCENT REGISTER PLUS LITERAL RBRACKET {$$ = new Arguments($3,2,AddressingMode::REGISTER_OFFSET_LITERAL); $$->argName->push_back($5); $$->argType->push_back(0); }
-  | LBRACKET PERCENT REGISTER PLUS SYMBOL RBRACKET {$$ = new Arguments($3,2,AddressingMode::REGISTER_OFFSET_SYMBOL); $$->argName->push_back($5); $$->argType->push_back(1); }
+  | LBRACKET gpr RBRACKET {$$ = new Arguments($2,2,AddressingMode::REGISTER_INDIRECT);}
+  | LBRACKET gpr PLUS LITERAL RBRACKET {$$ = new Arguments($2,2,AddressingMode::REGISTER_OFFSET_LITERAL); $$->argName->push_back($4); $$->argType->push_back(0); }
+  | LBRACKET gpr PLUS SYMBOL RBRACKET {$$ = new Arguments($2,2,AddressingMode::REGISTER_OFFSET_SYMBOL); $$->argName->push_back($4); $$->argType->push_back(1); }
 ;
 
 operandAddr:
@@ -159,7 +159,7 @@ int main(int argc, char ** argv){
 
   //while(yylex());
   yyparse();
-  free_mem();
+  //free_mem();
 }
 
 void yyerror(const char *s){
