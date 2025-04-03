@@ -1,37 +1,52 @@
-# Definicija kompajlera i alata
+# Alati
 CC = g++
-BISON = bison
 FLEX = flex
+BISON = bison
 
-# Opcije kompajliranja
-CXXFLAGS = -Iinc -g  # -Iinc dodaje "inc" folder u include putanju
+# Putanje i opcije
+CXXFLAGS = -Iinc -g
 
-# Izlazni fajlovi
+# Fajlovi za lexer i parser
 LEX_FILE = misc/lexer.l
 YACC_FILE = misc/parser.y
-SRC_FILES = src/assembler.cpp
-EXECUTABLE = proba
 
-# Generisani fajlovi
 LEX_OUTPUT = misc/lex.yy.c
 YACC_OUTPUT_C = misc/parser.tab.c
 YACC_OUTPUT_H = misc/parser.tab.h
 
-# Glavni build proces
-all: $(EXECUTABLE)
+# Izvori za asembler i linker
+ASM_SRC = src/assembler.cpp
+LINKER_SRC = src/linker.cpp
 
-# Generisanje izvršnog fajla
-$(EXECUTABLE): $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(SRC_FILES)
-	$(CC) $(CXXFLAGS) $^ -o $@
+# Izvršni fajlovi
+ASSEMBLER_EXEC = assembler
+LINKER_EXEC = linker
 
-# Generisanje parsera
+# Podrazumevana meta
+all: build-assembler build-linker
+
+# Metoda za build asemblera
+build-assembler: $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(ASM_SRC)
+	$(CC) $(CXXFLAGS) $^ -o $(ASSEMBLER_EXEC)
+
+# Metoda za build linkera
+build-linker: $(LINKER_SRC)
+	$(CC) $(CXXFLAGS) $^ -o $(LINKER_EXEC)
+
+# Generiši parser
 $(YACC_OUTPUT_C): $(YACC_FILE)
-	$(BISON) -d $< -o $(YACC_OUTPUT_C)
+	$(BISON) -d $< -o $@
 
-# Generisanje leksera
+# Generiši lexer
 $(LEX_OUTPUT): $(LEX_FILE)
 	$(FLEX) -o $@ $<
 
-# Čišćenje svih generisanih fajlova
+# Čišćenje svega
 clean:
-	rm -f $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(YACC_OUTPUT_H) $(EXECUTABLE) *.o
+	rm -f $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(YACC_OUTPUT_H)
+	rm -f $(ASSEMBLER_EXEC) $(LINKER_EXEC)
+	rm -f *.o *.hex *.txt
+
+
+
+
