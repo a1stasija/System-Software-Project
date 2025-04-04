@@ -57,7 +57,7 @@ struct AssemblerSectionInfo{
     this->base = base;
     this->size = size;
     this->placed = placed;
-    this->code = new vector<char>(size, 0);
+    this->code = new vector<char>();
   }
 
 
