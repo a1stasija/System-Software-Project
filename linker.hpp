@@ -25,7 +25,6 @@ struct LinkerSection
   int idSymbolTable;
   unsigned long base; // postavlja se na osnovu -place ili automatski
   unsigned long size;
-  vector<LinkerRelocationTableEntry *> *relocationTableForSection;
   vector<char> *code;
 
   LinkerSection(string name, int id, unsigned long base,  unsigned long size)
@@ -34,8 +33,9 @@ struct LinkerSection
     this->idSymbolTable = id;
     this->base = base;
     this->size = size;
-    this->relocationTableForSection = new vector<LinkerRelocationTableEntry *>();
+    //this->code = new vector<char>(size, 0);
     this->code = new vector<char>();
+
   }
 
 };
@@ -47,6 +47,7 @@ struct AssemblerSectionInfo{
   int asmIdSymb;
   unsigned long base;
   unsigned long size;
+  vector<char> *code;
   bool placed;
 
   AssemblerSectionInfo(string sectionName, int asmIdSymbol, int asmIdFile, int base, int size, bool placed){
@@ -56,6 +57,7 @@ struct AssemblerSectionInfo{
     this->base = base;
     this->size = size;
     this->placed = placed;
+    this->code = new vector<char>(size, 0);
   }
 
 

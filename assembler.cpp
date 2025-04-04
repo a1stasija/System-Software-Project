@@ -2,20 +2,13 @@
 #include <fstream>
 
 using namespace std;
-/*
-extern int locationCounter;
-
-extern map<string, SymbolTableEntry *> *symbolTable;
-extern map<int, Section *> *allSections;
-extern Section *currSection;
-extern map<int, LiteralPoolEntry *> *literalPool;*/
 
 int SymbolTableEntry::cnt = 0;
 map<int, Section *> *allSections = new map<int, Section *>();
 map<string, SymbolTableEntry *> *symbolTable = new map<string, SymbolTableEntry *>();
 map<string, LiteralPoolEntry *> *literalPool = new map<string, LiteralPoolEntry *>();
-std::vector<string> literalInsertionOrder;
-string outputName = "output.o";
+vector<string> literalInsertionOrder;
+extern string outputName;
 
 Section *currSection = nullptr;
 int locationCounter = 0;
@@ -39,9 +32,9 @@ void write_binary_output(const string& filename) {
     out.write((char*)&nameLen, sizeof(size_t));
     out.write(sec->name.c_str(), nameLen);
 
-    out.write((char*)&sec->idSymbolTable, sizeof(uint32_t));
-    uint32_t codeSize = sec->code->size();
-    out.write((char*)&codeSize, sizeof(uint32_t));
+    out.write((char*)&sec->idSymbolTable, sizeof(unsigned int));
+    unsigned int codeSize = sec->code->size();
+    out.write((char*)&codeSize, sizeof(unsigned int));
     out.write((char*)sec->code->data(), codeSize);
   }
 
@@ -57,11 +50,11 @@ void write_binary_output(const string& filename) {
     out.write((char*)&nameLen, sizeof(size_t));
     out.write(name.c_str(), nameLen);
 
-    out.write((char*)&sym->id, sizeof(uint32_t));
-    out.write((char*)&sym->ndx, sizeof(uint32_t));
-    out.write((char*)&sym->value, sizeof(uint32_t));
-    uint8_t bind = (uint8_t)sym->bind;
-    out.write((char*)&bind, sizeof(uint8_t)); // LCL=0, GLBL=1, EXTRN=2
+    out.write((char*)&sym->id, sizeof(unsigned int));
+    out.write((char*)&sym->ndx, sizeof(unsigned int));
+    out.write((char*)&sym->value, sizeof(unsigned int));
+    unsigned int bind = (unsigned int)sym->bind;
+    out.write((char*)&bind, sizeof(unsigned int)); // LCL=0, GLBL=1, EXTRN=2
   }
 
   // 3. Tabele relokacija
@@ -90,12 +83,12 @@ void write_binary_output(const string& filename) {
       out.write((char*)&symNameLen, sizeof(size_t));
       out.write(symName.c_str(), symNameLen);
 
-      out.write((char*)&rel->idSymbol, sizeof(uint32_t));
-      out.write((char*)&rel->section, sizeof(uint32_t));
-      out.write((char*)&rel->offset, sizeof(uint32_t));
-      out.write((char*)&rel->addend, sizeof(uint32_t));
-      uint8_t relType = (uint8_t)rel->type;
-      out.write((char*)&relType, sizeof(uint8_t));
+      out.write((char*)&rel->idSymbol, sizeof(unsigned int));
+      out.write((char*)&rel->section, sizeof(unsigned int));
+      out.write((char*)&rel->offset, sizeof(unsigned int));
+      out.write((char*)&rel->addend, sizeof(unsigned int));
+      unsigned int relType = (uint32_t)rel->type;
+      out.write((char*)&relType, sizeof(unsigned int));
     }
   }
 
@@ -368,14 +361,13 @@ void process_label(string *label)
   { // vec ga ima u tabeli simbola
 
     if (it->second->bind == 2)
-    { // ako je extern onda greska
-      cerr << "Greška: Simbol '" << symbol << "' ne može biti definisan jer je već deklarisan kao EXTERN!" << endl;
-      return;
+    { //vise nije implicitno extern nego je local
+      it->second->bind = 1;
     }
     if (it->second->value != -1)
     {
       cerr << "Greška: Simbol '" << symbol << "' ne moze biti dva puta definisan!" << endl;
-      return;
+      exit(-1);
     }
     // dopuni ulaz u tabeli simbola
     it->second->value = locationCounter;
@@ -1060,7 +1052,7 @@ void process_CALL_INSTR(Arguments *arg)
       // Simbol nije još definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
-        symbolTable->insert({operand, new SymbolTableEntry(operand, 1, 1, 0, -1, false)});
+        symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
       }
 
       ForwardReferenceTableEntry *helper = nullptr;
@@ -1218,7 +1210,7 @@ void process_JMP_INSTR(Arguments *arg)
       // Simbol nije još definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
-        symbolTable->insert({operand, new SymbolTableEntry(operand, 1, 1, 0, -1, false)});
+        symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
       }
 
       ForwardReferenceTableEntry *helper = nullptr;
@@ -1355,7 +1347,7 @@ void process_BEQ_INSTR(string *gpr1, string *gpr2, Arguments *arg)
       // Simbol nije još definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
-        symbolTable->insert({operand, new SymbolTableEntry(operand, 1, 1, 0, -1, false)});
+        symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
       }
 
       ForwardReferenceTableEntry *helper = nullptr;
@@ -1492,7 +1484,7 @@ void process_BNE_INSTR(string *gpr1, string *gpr2, Arguments *arg)
       // Simbol nije još definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
-        symbolTable->insert({operand, new SymbolTableEntry(operand, 1, 1, 0, -1, false)});
+        symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
       }
 
       ForwardReferenceTableEntry *helper = nullptr;
@@ -1629,7 +1621,7 @@ void process_BGT_INSTR(string *gpr1, string *gpr2, Arguments *arg)
       // Simbol nije još definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
-        symbolTable->insert({operand, new SymbolTableEntry(operand, 1, 1, 0, -1, false)});
+        symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
       }
 
       ForwardReferenceTableEntry *helper = nullptr;
@@ -2096,7 +2088,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
       // Simbol još nije definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
-        symbolTable->insert({operand, new SymbolTableEntry(operand, 1, 1, 0, -1, false)});
+        symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
       }
 
       ForwardReferenceTableEntry *helper = nullptr;
@@ -2244,7 +2236,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
       // Simbol nije još poznat → dodaj ga
       if (symbolTable->find(operand) == symbolTable->end())
       {
-        symbolTable->insert({operand, new SymbolTableEntry(operand, 1, 1, 0, -1, false)});
+        symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
       }
 
       ForwardReferenceTableEntry *helper = nullptr;
@@ -2482,7 +2474,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
       // Simbol nije još definisan → dodaj ga i koristi literal pool
       if (symbolTable->find(operand) == symbolTable->end())
       {
-        symbolTable->insert({operand, new SymbolTableEntry(operand, 1, 1, 0, -1, false)});
+        symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
       }
 
       ForwardReferenceTableEntry *helper = nullptr;

@@ -4,8 +4,11 @@
 #include <string.h>
 #include <fstream>
 #include <algorithm>
+#include <iomanip>
 
 using namespace std;
+
+int LinkerSymbolTableEntry::cnt = 0;
 
 map<string, LinkerSection *> *linkerSections = new map<string, LinkerSection *>();                      // id iz linkerSymbolTable i pokaz. na LinkerSection
 vector<AssemblerSectionInfo *> *asmSections = new vector<AssemblerSectionInfo *>();                     // idFile,sectionName PROVERI MOZE LI OVA STRUKTURA
@@ -18,6 +21,66 @@ bool hexOpt = false;
 bool outputNameDefined = false; // da li je uneta -o opcija
 
 string outputName;
+
+void printLinkerSymbolTable()
+{
+  cout << "=== TABELA SIMBOLA LINKERA ===\n";
+  for (map<string, LinkerSymbolTableEntry*>::iterator it = linkerSymbolTable->begin(); it != linkerSymbolTable->end(); ++it)
+  {
+    string name = it->first;
+    LinkerSymbolTableEntry* entry = it->second;
+
+    cout << "Ime: " << name
+         << ", ID: " << entry->id
+         << ", Value: " << entry->value
+         << ", Type: " << entry->type
+         << ", Bind: " << entry->bind
+         << ", NDX: " << entry->ndx
+         << endl;
+  }
+  cout << "===============================\n";
+}
+void printLinkerSectionsCode()
+{
+  cout << "\n=== CODE SEKCIJA PO SEKCIJI ===\n";
+  for (map<string, LinkerSection*>::iterator it = linkerSections->begin(); it != linkerSections->end(); ++it)
+  {
+    cout << "Sekcija: " << it->first << ", base: " << it->second->base << ", size: " << it->second->size << endl;
+    cout << "Code: ";
+    vector<char>* code = it->second->code;
+    for (size_t i = 0; i < code->size(); i++) {
+      printf("%02X ", static_cast<unsigned char>((*code)[i]));
+      if ((i + 1) % 8 == 0) cout << endl;
+    }
+    cout << "\n----------------------------------\n";
+  }
+}
+
+void printDefinedAndUndefined()
+{
+  cout << "Definisani simboli:\n";
+  for (const auto &symb : defined)
+    cout << symb << endl;
+
+  cout << "\nNedefinisani simboli:\n";
+  for (const auto &symb : undefined)
+    cout << symb << endl;
+}
+void printAsmSections()
+{
+  cout << "=== ASM SECTIONS ===\n";
+  for (auto const &sec : *asmSections)
+  {
+    cout << "Ime: " << sec->sectionName
+         << ", FileID: " << sec->asmIdFile
+         << ", SymbID: " << sec->asmIdSymb
+         << ", Base: " << sec->base
+         << ", Size: " << sec->size
+         << ", Placed: " << (sec->placed ? "Yes" : "No")
+         << endl;
+  }
+  cout << "====================\n";
+}
 
 int main(int argc, char *argv[])
 {
@@ -61,9 +124,12 @@ int main(int argc, char *argv[])
             hexAddr = hexAddr.substr(2);
           }
           unsigned long address = 0;
-          try {
+          try
+          {
             address = stoul(hexAddr, nullptr, 16);
-          } catch (exception &e) {
+          }
+          catch (exception &e)
+          {
             cerr << "Greška: Nevalidna heksadekadna vrednost za -place: " << hexAddr << endl;
             exit(-1);
           }
@@ -165,14 +231,18 @@ int main(int argc, char *argv[])
         {
           nextFreeAddr = helperAsm->base + secSize;
         }
+      }else{
+        helperAsm->code->insert(helperAsm->code->end(), buffer.begin(), buffer.end());
       }
     }
     inFiles->push_back(move(currFile));
   }
   // sada proveravamo da li ima preklapanja placed sekcija
   vector<pair<unsigned long, string>> ranges;
-  for (auto &[secName, section] : *linkerSections)
+  for (auto it = linkerSections->begin(); it != linkerSections->end(); ++it)
   {
+    string secName = it->first;
+    LinkerSection *section = it->second;
     ranges.emplace_back(section->base, secName);
   }
   sort(ranges.begin(), ranges.end());
@@ -201,6 +271,7 @@ int main(int argc, char *argv[])
         asmInfo->linkerIdSymbol = symb->id;
         linkerSymbolTable->insert({asmInfo->sectionName, symb});
         LinkerSection *newSec = new LinkerSection(asmInfo->sectionName, symb->id, nextFreeAddr, asmInfo->size);
+        newSec->code->insert(newSec->code->end(), asmInfo->code->begin(), asmInfo->code->end());
         linkerSections->insert({asmInfo->sectionName, newSec});
         nextFreeAddr += asmInfo->size;
       }
@@ -208,9 +279,33 @@ int main(int argc, char *argv[])
       {
         // nadovezivanje na postojeću
         LinkerSection *sec = linkerSections->at(asmInfo->sectionName);
+        sec->code->insert(sec->code->end(), asmInfo->code->begin(), asmInfo->code->end());
         asmInfo->linkerIdSymbol = sec->idSymbolTable;
         asmInfo->base = sec->base + sec->size;
         sec->size += asmInfo->size;
+
+        unsigned long sizeToMove = asmInfo->size;
+        // moramo i da azuriramo sve sekcije koje su ispod
+        //  Pomeranje svih sekcija koje se nalaze iza ove u memoriji
+        for (auto it = linkerSections->begin(); it != linkerSections->end(); ++it)
+        {
+          string otherName = it->first;
+          LinkerSection *otherSec = it->second;
+          if (otherSec->base > sec->base && !placeReqs->count(otherName))
+          {
+            otherSec->base += sizeToMove;
+          }
+        }
+
+        // Ažuriranje asmSections koje su u tim sekcijama
+        for (auto &otherAsm : *asmSections)
+        {
+          if (!otherAsm->placed && otherAsm->sectionName != asmInfo->sectionName && otherAsm->base > sec->base)
+          {
+            otherAsm->base += sizeToMove;
+          }
+        }
+
         nextFreeAddr = max(nextFreeAddr, asmInfo->base + asmInfo->size);
       }
     }
@@ -236,16 +331,18 @@ int main(int argc, char *argv[])
       symbName.resize(nameLen);
       currFile.read(&symbName[0], nameLen);
 
-      int oldSymId, oldSecNdx, value;
-      int type; // npr. 0 = LOCAL, 1 = GLBL, 2 = EXTRN
+      unsigned int oldSymId, oldSecNdx, value;
+      unsigned int type; // npr. 0 = LOCAL, 1 = GLBL, 2 = EXTRN
       currFile.read(reinterpret_cast<char *>(&oldSymId), sizeof(unsigned int));
       currFile.read(reinterpret_cast<char *>(&oldSecNdx), sizeof(unsigned int));
       currFile.read(reinterpret_cast<char *>(&value), sizeof(unsigned int));
       currFile.read(reinterpret_cast<char *>(&type), sizeof(unsigned int));
 
-      if (type == 1)
+      cout << "DEBUG: Pročitavam simbol " << symbName << ", oldSecNdx = " << oldSecNdx << ", fileId = " << fileId << ", bind = "<< type << endl;
+
+      if (type == 0)
       { // GLBL
-        if (defined.count(symbName))
+        if (defined.count(symbName) && (oldSymId)!=(oldSecNdx))
         {
           cerr << "Greška: Simbol '" << symbName << "' je višestruko definisan!" << endl;
           exit(-1);
@@ -261,7 +358,7 @@ int main(int argc, char *argv[])
         }
       }
       // Ubacujemo simbol ako je globalni
-      if (type == 1)
+      if (type == 0)
       {
         // Pronađi odgovarajući unos u asmSections da odrediš novu bazu
         for (auto asmInfo : *asmSections)
@@ -269,7 +366,7 @@ int main(int argc, char *argv[])
           if (asmInfo->asmIdFile == fileId && asmInfo->asmIdSymb == oldSecNdx)
           {
             unsigned long newOffset = asmInfo->base + value;
-            if (linkerSymbolTable->count(symbName))
+            if (linkerSymbolTable->count(symbName) && (oldSymId)!=(oldSecNdx))
             {
               cerr << "Greška: Simbol '" << symbName << "' je već dodat u tabelu simbola!" << endl;
               exit(-1);
@@ -282,8 +379,12 @@ int main(int argc, char *argv[])
       }
     }
   }
+  printLinkerSymbolTable();
+  printDefinedAndUndefined();
+  printAsmSections();
+  printLinkerSectionsCode();
 
-  // Na kraju, provera da li postoje nedefinisani simboli
+  // provera da li postoje nedefinisani simboli
   if (!undefined.empty())
   {
     cerr << "Greška: Postoje nedefinisani simboli: ";
@@ -294,4 +395,178 @@ int main(int argc, char *argv[])
     cerr << endl;
     exit(-1);
   }
+
+  // razresavanje relokacija
+  for (int fileId = 0; fileId < fileNames.size(); fileId++)
+  {
+    ifstream &inFile = (*inFiles)[fileId];
+
+    // Broj sekcija
+    size_t numRelocSections;
+    inFile.read(reinterpret_cast<char *>(&numRelocSections), sizeof(size_t));
+
+    for (size_t i = 0; i < numRelocSections; ++i)
+    {
+      size_t numRelocs;
+      inFile.read(reinterpret_cast<char *>(&numRelocs), sizeof(size_t));
+
+      for (size_t j = 0; j < numRelocs; ++j)
+      {
+        // Ime simbola
+        size_t nameLen;
+        inFile.read(reinterpret_cast<char *>(&nameLen), sizeof(size_t));
+        string symbName(nameLen, ' ');
+        inFile.read(&symbName[0], nameLen);
+
+        unsigned int idSymbol, sectionId, offset, addend;
+        unsigned int type;
+
+        inFile.read(reinterpret_cast<char *>(&idSymbol), sizeof(unsigned int));
+        inFile.read(reinterpret_cast<char *>(&sectionId), sizeof(unsigned int));
+        inFile.read(reinterpret_cast<char *>(&offset), sizeof(unsigned int));
+        inFile.read(reinterpret_cast<char *>(&addend), sizeof(unsigned int));
+        inFile.read(reinterpret_cast<char *>(&type), sizeof(unsigned int));
+
+        // Nađi baznu adresu sekcije u kojoj se vrši relokacija
+        AssemblerSectionInfo *targetSection = nullptr;
+        for (auto asmInfo : *asmSections)
+        {
+          if (asmInfo->asmIdFile == fileId && asmInfo->asmIdSymb == sectionId)
+          {
+            targetSection = asmInfo;
+            break;
+          }
+        }
+
+        if (!targetSection)
+        {
+          cerr << "Greška: Ne mogu da pronađem sekciju za relokaciju!" << endl;
+          exit(-1);
+        }
+
+        // Nađi vrednost simbola
+        if (!linkerSymbolTable->count(symbName))
+        {
+          cerr << "Greška: Simbol '" << symbName << "' nije pronađen tokom razrešavanja relokacija!" << endl;
+          exit(-1);
+        }
+
+        LinkerSymbolTableEntry *s = (*linkerSymbolTable)[symbName];
+        unsigned long symbVal = 0;
+        if (s->type == 0)
+        {
+          // Nađi bazu te sekcije (gde je simbol definisan)
+          AssemblerSectionInfo *defSection = nullptr;
+          for (auto asmInfo : *asmSections)
+          {
+            if (asmInfo->asmIdFile == fileId && asmInfo->asmIdSymb == s->ndx)
+            {
+              defSection = asmInfo;
+              break;
+            }
+          }
+          if (!defSection)
+          {
+            cerr << "Greška: Ne mogu da pronađem sekciju u kojoj je simbol '" << symbName << "' definisan!" << endl;
+            exit(-1);
+          }
+          symbVal = defSection->base;
+        }
+        else
+        {
+          symbVal = s->value;
+        }
+
+        unsigned long writeAddr = targetSection->base + offset;
+
+        LinkerSection *linkerSec = (*linkerSections)[targetSection->sectionName];
+
+        unsigned long result = 0;
+        if (type == 0)
+        { // PC-relative
+          result = symbVal + addend - writeAddr;
+        }
+        else if (type == 1)
+        { // absolute
+          result = symbVal + addend;
+        }
+
+        // Upis rezultata u code
+        for (int b = 0; b < 4; b++)
+        {
+          (*linkerSec->code)[writeAddr - linkerSec->base + b] = (result >> (8 * b)) & 0xFF;
+        }
+      }
+    }
+  }
+
+  // zatvaranje i ispis
+  for (int i = 0; i < inFiles->size(); i++)
+  {
+    (*inFiles)[i].close();
+  }
+
+  ofstream outFile(outputName);
+  if (!outFile.is_open())
+  {
+    cerr << "Greška: Ne mogu da otvorim izlazni fajl: " << outputName << endl;
+    exit(-1);
+  }
+
+  vector<pair<unsigned long, string>> sortedSections;
+  for (auto it = linkerSections->begin(); it != linkerSections->end(); ++it)
+  {
+    string name = it->first;
+    LinkerSection *symb = it->second;
+    sortedSections.emplace_back(symb->base, name);
+  }
+
+  sort(sortedSections.begin(), sortedSections.end());
+
+  // Ispiši heks sadržaj sekcija
+  unsigned long currAddr = 0;
+
+  for (size_t i = 0; i < sortedSections.size(); i++)
+  {
+    string secName = sortedSections[i].second;
+    LinkerSection *sec = linkerSections->at(secName);
+
+    // Ako postoji razmak između sekcija, ispuni nulama
+    while (currAddr < sec->base)
+    {
+      if (currAddr % 8 == 0)
+      {
+        if (currAddr != 0)
+          outFile << "\n";
+        outFile << hex << setw(8) << setfill('0') << currAddr << ": ";
+      }
+      outFile << "00 ";
+      currAddr++;
+    }
+
+    // Ispis sadržaja sekcije
+    for (size_t j = 0; j < sec->code->size(); j++)
+    {
+      if (currAddr % 8 == 0)
+      {
+        if (currAddr != 0)
+          outFile << "\n";
+        outFile << hex << setw(8) << setfill('0') << currAddr << ": ";
+      }
+      outFile << hex << setw(2) << setfill('0')
+              << (static_cast<unsigned int>((unsigned char)(*sec->code)[j])) << " ";
+      currAddr++;
+    }
+  }
+
+  // Poravnaj kraj na granicu od 8 bajtova ako treba
+  while (currAddr % 8 != 0)
+  {
+    outFile << "00 ";
+    currAddr++;
+  }
+  outFile << endl;
+
+  outFile.close();
+
 }

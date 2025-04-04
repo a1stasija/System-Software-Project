@@ -5,42 +5,28 @@
 #include <string.h>
 #include <regex>
 
-
 using namespace std;
 
-
 /* Globalni podaci */
-int SymbolTableEntry::cnt = 0;
-map<int, Section*> *allSections = new map<int, Section*>();
-map<string, SymbolTableEntry*> *symbolTable = new map<string, SymbolTableEntry*>();
-map<int, LiteralPoolEntry *> *literalPool = new map<int, LiteralPoolEntry *> ();
+string outputName = "output.o";
 
-Section* currSection = nullptr;
-int locationCounter = 0;
-string outputName;
+extern int parserMain(int argc, char *argv[]);
 
-
-
-extern int parser_main(int argc, char* argv[]);
-
-int main(int argc, char *argv[]){
-  //dohvatamo ime izlaznog fajla
-  outputName = argv[1]; //ako nije korisceno -o onda je ime isto kao ulaznog fajla samo sa .o
-  string input_file_name(argv[1]);
-  regex pattern("^.*/(.*)\\.s$");
-  smatch match;
-
-  if (regex_search(input_file_name, match, pattern))
+int main(int argc, char *argv[])
+{
+  if (argc < 2)
   {
-      outputName = match[1];
-      outputName = outputName + + ".o";
+    cerr << "Greška: Nisu prosleđeni argumenti.\n";
+    cerr << "Korišćenje: ./assembler [-o output.o] input.s\n";
+    return -1;
   }
-  
-  for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-o") == 0) {
-          outputName = argv[i + 1];
-        }
+  if (strcmp(argv[1], "-o") == 0)
+    outputName = argv[2];
+  else
+  {
+    outputName = argv[1];
+    outputName = regex_replace(outputName, regex("\\.s"), ".o");
+    outputName = outputName.substr(outputName.find_last_of("/") + 1);
   }
-
-  //return parserMain(argc,argv);
+  return parserMain(argc, argv);
 }

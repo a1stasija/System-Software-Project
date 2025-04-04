@@ -16,6 +16,7 @@ YACC_OUTPUT_H = misc/parser.tab.h
 
 # Izvori za asembler i linker
 ASM_SRC = src/assembler.cpp
+ASM_MAIN_SRC = src/main.cpp
 LINKER_SRC = src/linker.cpp
 
 # Izvršni fajlovi
@@ -26,8 +27,9 @@ LINKER_EXEC = linker
 all: build-assembler build-linker
 
 # Metoda za build asemblera
-build-assembler: $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(ASM_SRC)
+build-assembler: $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(ASM_SRC) $(ASM_MAIN_SRC)
 	$(CC) $(CXXFLAGS) $^ -o $(ASSEMBLER_EXEC)
+
 
 # Metoda za build linkera
 build-linker: $(LINKER_SRC)
