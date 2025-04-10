@@ -18,7 +18,7 @@ int locationCounter = 0;
 void write_binary_output(const string& filename) {
   ofstream out(filename, ios::binary);
   if (!out) {
-    cerr << "Greška: Ne mogu da otvorim binarni fajl za pisanje!" << endl;
+    cerr << "Greska: Ne mogu da otvorim binarni fajl za pisanje!" << endl;
     return;
   }
 
@@ -70,7 +70,7 @@ void write_binary_output(const string& filename) {
     for (size_t i = 0; i < numRelocs; ++i) {
       RelocationTableEntry* rel = relocs[i];
 
-      // Nađi ime simbola po ID-ju
+      // Nadji ime simbola po ID-ju
       string symName = "";
       for (map<string, SymbolTableEntry*>::iterator symIt = symbolTable->begin(); symIt != symbolTable->end(); ++symIt) {
         if (symIt->second->id == rel->idSymbol) {
@@ -93,7 +93,7 @@ void write_binary_output(const string& filename) {
   }
 
   out.close();
-  cout << "✔️ Binarni izlaz upisan u fajl '" << filename << "'" << endl;
+  //cout << "Binarni izlaz upisan u fajl '" << filename << "'" << endl;
 }
 
 
@@ -125,7 +125,7 @@ void printFlink(const vector<ForwardReferenceTableEntry *> *flink)
   cout << "===== Forward References =====\n";
   for (const auto &ref : *flink)
   {
-    cout << "→ Section: " << ref->section
+    cout << "-> Section: " << ref->section
          << ", Offset: " << ref->offset
          << ", Type: " << (ref->type == 0 ? "PC Rel" : "Absolute")
          << "\n";
@@ -144,7 +144,7 @@ void printLiteralPool()
       continue;
 
     cout << "Sekcija: " << section->name
-         << " (ID: " << section->idSymbolTable << ") → "
+         << " (ID: " << section->idSymbolTable << ") -> "
          << "literalPoolBase: " << section->literalPoolBase
          << ", literalPoolSize: " << section->literalPoolSize << endl;
 
@@ -153,7 +153,7 @@ void printLiteralPool()
 
     if (section->code->size() < static_cast<size_t>(base + size))
     {
-      cerr << "Greška: Literal pool izlazi izvan opsega sekcije '" << section->name << "'!" << endl;
+      cerr << "Greska: Literal pool izlazi izvan opsega sekcije '" << section->name << "'!" << endl;
       continue;
     }
 
@@ -229,16 +229,16 @@ void write_to_memory_data(int sectionId, int offset, int value)
     }
   }
 
-  // Ako sekcija nije pronađena, ispisujemo grešku
+  // Ako sekcija nije pronadjena, ispisujemo gresku
   if (!section)
   {
-    cerr << "Greška: Sekcija sa ID " << sectionId << " ne postoji!" << endl;
+    cerr << "Greska: Sekcija sa ID " << sectionId << " ne postoji!" << endl;
     return;
   }
 
   if (!section->code)
   {
-    cerr << "Greška: Sekcija '" << section->name << "' nema alociranu memoriju!" << endl;
+    cerr << "Greska: Sekcija '" << section->name << "' nema alociranu memoriju!" << endl;
     return;
   }
 
@@ -269,16 +269,16 @@ void write_to_memory_data_long(int sectionId, int offset, unsigned long value)
     }
   }
 
-  // Ako sekcija nije pronađena, ispisujemo grešku
+  // Ako sekcija nije pronadjena, ispisujemo gresku
   if (!section)
   {
-    cerr << "Greška: Sekcija sa ID " << sectionId << " ne postoji!" << endl;
+    cerr << "Greska: Sekcija sa ID " << sectionId << " ne postoji!" << endl;
     return;
   }
 
   if (!section->code)
   {
-    cerr << "Greška: Sekcija '" << section->name << "' nema alociranu memoriju!" << endl;
+    cerr << "Greska: Sekcija '" << section->name << "' nema alociranu memoriju!" << endl;
     return;
   }
 
@@ -296,7 +296,7 @@ void write_to_memory_data_long(int sectionId, int offset, unsigned long value)
 
 int calculate_addend(int relocationType, SymbolTableEntry *symbol)
 {
-  int addend = 0; // Početni addend
+  int addend = 0; // Pocetni addend
 
   // Ako je simbol lokalan, dodaj njegov offset (value iz tabele simbola)
   if (symbol->bind == 1)
@@ -316,7 +316,7 @@ int calculate_addend(int relocationType, SymbolTableEntry *symbol)
 int calculate_reloc_idSymbol(SymbolTableEntry *symbol)
 {
   if (symbol->bind == 1)
-  { // Lokalan simbol → koristimo sekciju
+  { // Lokalan simbol -> koristimo sekciju
     return symbol->ndx;
   }
   else if (symbol->bind == 0 || symbol->bind == 2)
@@ -325,7 +325,7 @@ int calculate_reloc_idSymbol(SymbolTableEntry *symbol)
   }
   else
   {
-    cerr << "Greška: Nepoznata vrednost bind za simbol '" << symbol->name << "'" << endl;
+    cerr << "Greska: Nepoznata vrednost bind za simbol '" << symbol->name << "'" << endl;
     return -1;
   }
 }
@@ -366,7 +366,7 @@ void process_label(string *label)
     }
     if (it->second->value != -1)
     {
-      cerr << "Greška: Simbol '" << symbol << "' ne moze biti dva puta definisan!" << endl;
+      cerr << "Greska: Simbol '" << symbol << "' ne moze biti dva puta definisan!" << endl;
       exit(-1);
     }
     // dopuni ulaz u tabeli simbola
@@ -385,7 +385,7 @@ void process_label(string *label)
 /* DIREKTIVE */
 void process_END_DIR()
 {
-  // 1️⃣ AKO POSTOJI TRENUTNA SEKCIJA → UGRAĐUJEMO BAZEN LITERALA
+  //AKO POSTOJI TRENUTNA SEKCIJA -> UGRADJUJEMO BAZEN LITERALA
   if (currSection)
   {
     currSection->literalPoolBase = locationCounter;
@@ -401,14 +401,14 @@ void process_END_DIR()
 
         LiteralPoolEntry *literalEntry = it->second;
 
-        // 🔁 PATCHUJ FRT ZA TAJ LITERAL/SIMBOL
+        // PATCHUJ FRT ZA TAJ LITERAL/SIMBOL
         for (ForwardReferenceTableEntry *ref : *(literalEntry->flink))
         {
           Section *targetSection = currSection;
 
           if (!targetSection)
           {
-            cerr << "Greška: Sekcija sa ID " << ref->section << " ne postoji!" << endl;
+            cerr << "Greska: Sekcija sa ID " << ref->section << " ne postoji!" << endl;
             continue;
           }
 
@@ -416,7 +416,7 @@ void process_END_DIR()
 
           if (ref->offset + 1 >= targetSection->code->size())
           {
-            cerr << "Greška: Offset " << ref->offset << " je van opsega memorije u sekciji '" << targetSection->name << "'!" << endl;
+            cerr << "Greska: Offset " << ref->offset << " je van opsega memorije u sekciji '" << targetSection->name << "'!" << endl;
             continue;
           }
 
@@ -427,7 +427,7 @@ void process_END_DIR()
             auto sym = symbolTable->find(key);
             if (sym == symbolTable->end())
             {
-              cerr << "Greška .END1: Simbol '" << key << "' nije pronađen u tabeli simbola!" << endl;
+              cerr << "Greska .END1: Simbol '" << key << "' nije pronadjen u tabeli simbola!" << endl;
               continue;
             }
 
@@ -446,7 +446,7 @@ void process_END_DIR()
           (*targetSection->code)[ref->offset + 1] = relocHigh;                                    // 0xXX
         }
 
-        // ✍️ UPIS VREDNOSTI U MEMORIJU
+        // UPIS VREDNOSTI U MEMORIJU
         if (!literalEntry->isSymbol)
         {
           unsigned long value = stoul(key, nullptr, 0);
@@ -458,7 +458,7 @@ void process_END_DIR()
           auto symIt = symbolTable->find(key);
           if (symIt == symbolTable->end())
           {
-            cerr << "Greška: Simbol '" << key << "' nije pronađen u tabeli simbola!" << endl;
+            cerr << "Greska: Simbol '" << key << "' nije pronadjen u tabeli simbola!" << endl;
             write_to_memory_data(currSection->idSymbolTable, locationCounter, 0);
             locationCounter += 4;
             continue;
@@ -475,7 +475,7 @@ void process_END_DIR()
           }
           else
           {
-            // Globalan ili simbol iz druge sekcije → relokacija
+            // Globalan ili simbol iz druge sekcije -> relokacija
             // cout << "Ostavljamo mesta za vrednost simbola koji ce linker prepraviti u bazenu za key: " << key << endl;
             write_to_memory_data(currSection->idSymbolTable, locationCounter, 0);
 
@@ -507,7 +507,7 @@ void process_END_DIR()
     literalInsertionOrder.clear();
   }
 
-  // 2️⃣ BACKPATCHING ZA OSTALE FORWARD REFERENCE (mora da ostane zbog .word direktive)
+  //  BACKPATCHING ZA OSTALE FORWARD REFERENCE (mora da ostane zbog .word direktive)
   for (auto &entry : *symbolTable)
   {
     SymbolTableEntry *symbol = entry.second;
@@ -518,14 +518,14 @@ void process_END_DIR()
 
       if (symbol->value != -1 && symbol->ndx == forwardRef->section && forwardRef->type == 0 && symbol->bind == 1)
       {
-        // cout << "→ Upis u memoriju (local symbol PC-relative)" << endl;
+        // cout << "Upis u memoriju (local symbol PC-relative)" << endl;
 
         int val = symbol->value - forwardRef->offset - 4;
         write_to_memory_data(forwardRef->section, forwardRef->offset, val);
       }
       else
       {
-        // cout << "→ Kreiraj relokaciju" << endl;
+        // cout << " Kreiraj relokaciju" << endl;
 
         if (allSections->find(forwardRef->section) != allSections->end())
         {
@@ -547,25 +547,25 @@ void process_END_DIR()
         }
         else
         {
-          cerr << "Greška: Sekcija " << forwardRef->section << " nije pronađena!" << endl;
+          cerr << "Greska: Sekcija " << forwardRef->section << " nije pronadjena!" << endl;
         }
       }
 
       it = symbol->flink->erase(it);
     }
     if(symbol->bind == 0 && symbol->value == -1){
-      cerr << "Greška: Globalni simbol " << symbol->name << " nije definisan u fajlu!" << endl;
+      cerr << "Greska: Globalni simbol " << symbol->name << " nije definisan u fajlu!" << endl;
       exit(-1);
     }
   }
 
   write_binary_output(outputName);
 
-  // 3️⃣ ISPIS ZA TESTIRANJE
-  printSymbolTable();
-  printAllSections();
-  printRelocationTable();
-  printLiteralPool();
+  // ISPIS ZA TESTIRANJE
+  //printSymbolTable();
+  //printAllSections();
+  //printRelocationTable();
+  //printLiteralPool();
   exit(0);
 }
 
@@ -582,7 +582,7 @@ void process_GLOBAL_DIR(Arguments *args)
 
     if (it != symbolTable->end())
     {
-      // Simbol već postoji u tabeli -> postavi ga kao GLOBALAN
+      // Simbol vec postoji u tabeli -> postavi ga kao GLOBALAN
       it->second->bind = 0; // 0 = GLOBAL
       // cout << "Simbol '" << symbol << "' postavljen kao globalan." << endl;
     }
@@ -608,13 +608,13 @@ void process_EXTERN_DIR(Arguments *args)
 
     if (it != symbolTable->end())
     {
-      // Simbol postoji, proveravamo da li je već definisan ili je već deklarisan kao ne-extern
+      // Simbol postoji, proveravamo da li je vec definisan ili je vec deklarisan kao ne-extern
       if (it->second->ndx != 0 || it->second->bind != 2)
       {
-        cerr << "Greška: Simbol '" << symbol << "' ne može biti EXTERN jer je već definisan!" << endl;
+        cerr << "Greska: Simbol '" << symbol << "' ne moze biti EXTERN jer je vec definisan!" << endl;
         continue;
       }
-      // cout << "Simbol '" << symbol << "' je već označen kao EXTERN." << endl;
+      
     }
     else
     {
@@ -627,7 +627,7 @@ void process_EXTERN_DIR(Arguments *args)
       }
       else
       {
-        cerr << "Greška pri dodavanju simbola '" << symbol << "' u tabelu!" << endl;
+        cerr << "Greska pri dodavanju simbola '" << symbol << "' u tabelu!" << endl;
       }
     }
   }
@@ -637,13 +637,13 @@ void process_WORD_DIR(Arguments *args)
 {
   if (!args || !args->argName || !args->argType)
   {
-    cerr << "Greška: Nevalidni argumenti za .word direktivu!" << endl;
+    cerr << "Greska: Nevalidni argumenti za .word direktivu!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: .word direktiva mora biti unutar sekcije!" << endl;
+    cerr << "Greska: .word direktiva mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -661,7 +661,7 @@ void process_WORD_DIR(Arguments *args)
       }
       catch (...)
       {
-        cerr << "Greška: Nevalidan literal '" << arg << "' u .word direktivi!" << endl;
+        cerr << "Greska: Nevalidan literal '" << arg << "' u .word direktivi!" << endl;
         continue;
       }
 
@@ -690,7 +690,7 @@ void process_WORD_DIR(Arguments *args)
       }
       else
       {
-        // Simbol nije poznat → Dodajemo ga u tabelu simbola ako već ne postoji
+        // Simbol nije poznat -> Dodajemo ga u tabelu simbola ako vec ne postoji
         if (symbolTable->find(arg) == symbolTable->end())
         {
           symbolTable->insert({arg, new SymbolTableEntry(arg, 2, 1, 0, -1, false)});
@@ -704,7 +704,7 @@ void process_WORD_DIR(Arguments *args)
     }
     else if (type == 2)
     { // Registar (nije validan u .word)
-      cerr << "Greška: Registar '" << arg << "' nije dozvoljen u .word direktivi!" << endl;
+      cerr << "Greska: Registar '" << arg << "' nije dozvoljen u .word direktivi!" << endl;
       continue;
     }
 
@@ -717,11 +717,11 @@ void process_SECTION_DIR(string *name)
 {
   if (!name || name->empty())
   {
-    cerr << "Greška: Sekcija mora imati validno ime!" << endl;
+    cerr << "Greska: Sekcija mora imati validno ime!" << endl;
     return;
   }
 
-  // 1️⃣ **Ako postoji tekuća sekcija, dodajemo njen bazen literala i ažuriramo veličinu**
+  // Ako postoji tekuca sekcija, dodajemo njen bazen literala i azuriramo velicinu
   if (currSection)
   {
     currSection->literalPoolBase = locationCounter;
@@ -737,14 +737,14 @@ void process_SECTION_DIR(string *name)
 
         LiteralPoolEntry *literalEntry = it->second;
 
-        // 🔁 PATCHUJ FRT ZA TAJ LITERAL/SIMBOL
+        // PATCHUJ FRT ZA TAJ LITERAL/SIMBOL
         for (ForwardReferenceTableEntry *ref : *(literalEntry->flink))
         {
           Section *targetSection = currSection;
 
           if (!targetSection)
           {
-            cerr << "Greška: Sekcija sa ID " << ref->section << " ne postoji!" << endl;
+            cerr << "Greska: Sekcija sa ID " << ref->section << " ne postoji!" << endl;
             continue;
           }
 
@@ -752,7 +752,7 @@ void process_SECTION_DIR(string *name)
 
           if (ref->offset + 1 >= targetSection->code->size())
           {
-            cerr << "Greška: Offset " << ref->offset << " je van opsega memorije u sekciji '" << targetSection->name << "'!" << endl;
+            cerr << "Greska: Offset " << ref->offset << " je van opsega memorije u sekciji '" << targetSection->name << "'!" << endl;
             continue;
           }
           if (literalEntry->isSymbol)
@@ -760,7 +760,7 @@ void process_SECTION_DIR(string *name)
             auto sym = symbolTable->find(key);
             if (sym == symbolTable->end())
             {
-              cerr << "Greška: Simbol '" << key << "' nije pronađen u tabeli simbola!" << endl;
+              cerr << "Greska: Simbol '" << key << "' nije pronadjen u tabeli simbola!" << endl;
               continue;
             }
 
@@ -778,7 +778,7 @@ void process_SECTION_DIR(string *name)
           (*targetSection->code)[ref->offset + 1] = relocHigh;                                    // 0xXX
         }
 
-        // ✍️ UPIS VREDNOSTI U MEMORIJU
+        // UPIS VREDNOSTI U MEMORIJU
         if (!literalEntry->isSymbol)
         {
           unsigned long value = stoul(key, nullptr, 0);
@@ -789,7 +789,7 @@ void process_SECTION_DIR(string *name)
           auto symIt = symbolTable->find(key);
           if (symIt == symbolTable->end())
           {
-            cerr << "Greška: Simbol '" << key << "' nije pronađen u tabeli simbola!" << endl;
+            cerr << "Greska: Simbol '" << key << "' nije pronadjen u tabeli simbola!" << endl;
             write_to_memory_data(currSection->idSymbolTable, locationCounter, 0);
             locationCounter += 4;
             continue;
@@ -805,7 +805,7 @@ void process_SECTION_DIR(string *name)
           }
           else
           {
-            // Globalan ili simbol iz druge sekcije → relokacija
+            // Globalan ili simbol iz druge sekcije -> relokacija
             write_to_memory_data(currSection->idSymbolTable, locationCounter, 0);
 
             if (symbol->value != -1)
@@ -835,10 +835,10 @@ void process_SECTION_DIR(string *name)
     literalPool->clear();
     literalInsertionOrder.clear();
   }
-  // 2️⃣ **Kreiramo novu sekciju i dodajemo je u `symbolTable` i `allSections`**
+  //Kreiramo novu sekciju i dodajemo je u `symbolTable` i `allSections`
   if (symbolTable->find(*name) != symbolTable->end())
   {
-    cerr << "Greška: Sekcija '" << *name << "' je već definisana!" << endl;
+    cerr << "Greska: Sekcija '" << *name << "' je vec definisana!" << endl;
     return;
   }
 
@@ -852,7 +852,7 @@ void process_SECTION_DIR(string *name)
   // Dodajemo je u `allSections`
   allSections->insert({newSectionSymbol->id, newSection});
 
-  // 3️⃣ **Ažuriramo `currSection` i resetujemo `locationCounter`**
+  // Azuriramo `currSection` i resetujemo `locationCounter`
   currSection = newSection;
   locationCounter = 0;
 }
@@ -866,13 +866,13 @@ void process_SKIP_DIR(string *val)
 
   if (num < 0)
   {
-    cerr << "Greška: .skip ne može imati negativan broj bajtova!" << endl;
+    cerr << "Greska: .skip ne moze imati negativan broj bajtova!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: .skip direktiva je korišćena pre nego što je definisana sekcija!" << endl;
+    cerr << "Greska: .skip direktiva je koriscena pre nego sto je definisana sekcija!" << endl;
     return;
   }
 
@@ -889,7 +889,7 @@ void process_HALT_INSTR()
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: HALT instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: HALT instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -911,7 +911,7 @@ void process_INT_INSTR()
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: INT instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: INT instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -938,7 +938,7 @@ void process_IRET_INSTR()
   */
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: IRET instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: IRET instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
   // ldr %status, [%sp + 4];
@@ -966,13 +966,13 @@ void process_CALL_INSTR(Arguments *arg)
 {
   if (!arg || !arg->argName || !arg->argType || arg->argName->empty())
   {
-    cerr << "Greška: CALL instrukcija zahteva operand!" << endl;
+    cerr << "Greska: CALL instrukcija zahteva operand!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: CALL mora biti unutar sekcije!" << endl;
+    cerr << "Greska: CALL mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -984,11 +984,11 @@ void process_CALL_INSTR(Arguments *arg)
     unsigned long value = 0;
     try
     {
-      value = stoul(operand, nullptr, 0); // podržava heks, okt, dec
+      value = stoul(operand, nullptr, 0); // podrzava heks, okt, dec
     }
     catch (...)
     {
-      cerr << "Greška: Nevalidna literal vrednost u CALL instrukciji!" << endl;
+      cerr << "Greska: Nevalidna literal vrednost u CALL instrukciji!" << endl;
       return;
     }
 
@@ -1002,7 +1002,7 @@ void process_CALL_INSTR(Arguments *arg)
     }
     else
     {
-      // Ne može da stane → koristi bazen literala
+      // Ne moze da stane -> koristi bazen literala
       if (literalPool->find(operand) == literalPool->end())
       {
         (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, false);
@@ -1013,10 +1013,10 @@ void process_CALL_INSTR(Arguments *arg)
         (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
       }
 
-      // Ugradi generički call koji će biti patch-ovan u .end
+      // Ugradi genericki call koji ce biti patch-ovan u .end
       currSection->code->push_back(0x21); // ldr pc, [pc + offset]
       currSection->code->push_back(0xf0);
-      currSection->code->push_back(0x00); // offset će se patchovati
+      currSection->code->push_back(0x00); // offset ce se patchovati
       currSection->code->push_back(0x00);
     }
   }
@@ -1049,7 +1049,7 @@ void process_CALL_INSTR(Arguments *arg)
           (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
         }
 
-        // Ugradi instrukciju koja će biti patchovana
+        // Ugradi instrukciju koja ce biti patchovana
         currSection->code->push_back(0x21); // ldr pc, [pc + offset]
         currSection->code->push_back(0xf0);
         currSection->code->push_back(0x00);
@@ -1058,7 +1058,7 @@ void process_CALL_INSTR(Arguments *arg)
     }
     else
     {
-      // Simbol nije još definisan
+      // Simbol nije jos definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
         symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
@@ -1094,7 +1094,7 @@ void process_CALL_INSTR(Arguments *arg)
 
   if (locationCounter > 4096)
   {
-    cerr << "ERROR: CALL prekoračuje maksimalnu veličinu sekcije!" << endl;
+    cerr << "ERROR: CALL prekoracuje maksimalnu velicinu sekcije!" << endl;
     exit(-1);
   }
 }
@@ -1103,7 +1103,7 @@ void process_RET_INSTR()
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: RET instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: RET instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
   currSection->code->push_back(0x93);
@@ -1124,13 +1124,13 @@ void process_JMP_INSTR(Arguments *arg)
 {
   if (!arg || !arg->argName || !arg->argType || arg->argName->empty())
   {
-    cerr << "Greška: JMP instrukcija zahteva operand!" << endl;
+    cerr << "Greska: JMP instrukcija zahteva operand!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: JMP mora biti unutar sekcije!" << endl;
+    cerr << "Greska: JMP mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1142,11 +1142,11 @@ void process_JMP_INSTR(Arguments *arg)
     unsigned long value = 0;
     try
     {
-      value = stoul(operand, nullptr, 0); // podržava heks, okt, dec
+      value = stoul(operand, nullptr, 0); // podrzava heks, okt, dec
     }
     catch (...)
     {
-      cerr << "Greška: Nevalidna literal vrednost u JMP instrukciji!" << endl;
+      cerr << "Greska: Nevalidna literal vrednost u JMP instrukciji!" << endl;
       return;
     }
 
@@ -1160,7 +1160,7 @@ void process_JMP_INSTR(Arguments *arg)
     }
     else
     {
-      // Ne može da stane → koristi bazen literala
+      // Ne moze da stane -> koristi bazen literala
       if (literalPool->find(operand) == literalPool->end())
       {
         (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, false);
@@ -1171,10 +1171,10 @@ void process_JMP_INSTR(Arguments *arg)
         (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
       }
 
-      // Ugradi generički call koji će biti patch-ovan u .end
+      // Ugradi genericki jmp koji ce biti patch-ovan u .end
       currSection->code->push_back(0x38); // ldr pc, [pc + offset]
       currSection->code->push_back(0xf0);
-      currSection->code->push_back(0x00); // offset će se patchovati
+      currSection->code->push_back(0x00); // offset ce se patchovati
       currSection->code->push_back(0x00);
     }
   }
@@ -1207,7 +1207,7 @@ void process_JMP_INSTR(Arguments *arg)
           (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
         }
 
-        // Ugradi instrukciju koja će biti patchovana
+        // Ugradi instrukciju koja ce biti patchovana
         currSection->code->push_back(0x38); // ldr pc, [pc + offset]
         currSection->code->push_back(0xf0);
         currSection->code->push_back(0x00);
@@ -1216,7 +1216,7 @@ void process_JMP_INSTR(Arguments *arg)
     }
     else
     {
-      // Simbol nije još definisan
+      // Simbol nije jos definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
         symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
@@ -1251,7 +1251,7 @@ void process_JMP_INSTR(Arguments *arg)
 
   if (locationCounter > 4096)
   {
-    cerr << "ERROR: JMP prekoračuje maksimalnu veličinu sekcije!" << endl;
+    cerr << "ERROR: JMP prekoracuje maksimalnu velicinu sekcije!" << endl;
     exit(-1);
   }
 }
@@ -1260,13 +1260,13 @@ void process_BEQ_INSTR(string *gpr1, string *gpr2, Arguments *arg)
 {
   if (!arg || !arg->argName || !arg->argType || arg->argName->empty())
   {
-    cerr << "Greška: BEQ instrukcija zahteva operand!" << endl;
+    cerr << "Greska: BEQ instrukcija zahteva operand!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: BEQ mora biti unutar sekcije!" << endl;
+    cerr << "Greska: BEQ mora biti unutar sekcije!" << endl;
     return;
   }
   int gpr1Num = stoi(gpr1->substr(1)); // gpr1 je b
@@ -1279,11 +1279,11 @@ void process_BEQ_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     unsigned long value = 0;
     try
     {
-      value = stoul(operand, nullptr, 0); // podržava heks, okt, dec
+      value = stoul(operand, nullptr, 0); // podrzava heks, okt, dec
     }
     catch (...)
     {
-      cerr << "Greška: Nevalidna literal vrednost u BEQ instrukciji!" << endl;
+      cerr << "Greska: Nevalidna literal vrednost u BEQ instrukciji!" << endl;
       return;
     }
 
@@ -1297,7 +1297,7 @@ void process_BEQ_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     }
     else
     {
-      // Ne može da stane → koristi bazen literala
+      // Ne moze da stane-> koristi bazen literala
       if (literalPool->find(operand) == literalPool->end())
       {
         (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, false);
@@ -1308,7 +1308,7 @@ void process_BEQ_INSTR(string *gpr1, string *gpr2, Arguments *arg)
         (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
       }
 
-      // Ugradi generički call koji će biti patch-ovan u .end
+      // Ugradi genericki beq koji ce biti patch-ovan u .end
       currSection->code->push_back(0x39);
       currSection->code->push_back(((0xF << 4) | (gpr1Num & 0x0F)));
       currSection->code->push_back(((gpr2Num << 4) | 0x00));
@@ -1344,7 +1344,7 @@ void process_BEQ_INSTR(string *gpr1, string *gpr2, Arguments *arg)
           (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
         }
 
-        // Ugradi instrukciju koja će biti patchovana
+        // Ugradi instrukciju koja ce biti patchovana
         currSection->code->push_back(0x39); // ldr pc, [pc + offset]
         currSection->code->push_back(((0xF << 4) | (gpr1Num & 0x0F)));
         currSection->code->push_back(((gpr2Num << 4) | 0x00));
@@ -1353,7 +1353,7 @@ void process_BEQ_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     }
     else
     {
-      // Simbol nije još definisan
+      // Simbol nije jos definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
         symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
@@ -1388,7 +1388,7 @@ void process_BEQ_INSTR(string *gpr1, string *gpr2, Arguments *arg)
 
   if (locationCounter > 4096)
   {
-    cerr << "ERROR: BEQ prekoračuje maksimalnu veličinu sekcije!" << endl;
+    cerr << "ERROR: BEQ prekoracuje maksimalnu velicinu sekcije!" << endl;
     exit(-1);
   }
 }
@@ -1397,13 +1397,13 @@ void process_BNE_INSTR(string *gpr1, string *gpr2, Arguments *arg)
 {
   if (!arg || !arg->argName || !arg->argType || arg->argName->empty())
   {
-    cerr << "Greška: BNE instrukcija zahteva operand!" << endl;
+    cerr << "Greska: BNE instrukcija zahteva operand!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: BNE mora biti unutar sekcije!" << endl;
+    cerr << "Greska: BNE mora biti unutar sekcije!" << endl;
     return;
   }
   int gpr1Num = stoi(gpr1->substr(1)); // gpr1 je b
@@ -1416,11 +1416,11 @@ void process_BNE_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     unsigned long value = 0;
     try
     {
-      value = stoul(operand, nullptr, 0); // podržava heks, okt, dec
+      value = stoul(operand, nullptr, 0); // podrzava heks, okt, dec
     }
     catch (...)
     {
-      cerr << "Greška: Nevalidna literal vrednost u BNE instrukciji!" << endl;
+      cerr << "Greska: Nevalidna literal vrednost u BNE instrukciji!" << endl;
       return;
     }
 
@@ -1434,7 +1434,7 @@ void process_BNE_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     }
     else
     {
-      // Ne može da stane → koristi bazen literala
+      // Ne moze da stane -> koristi bazen literala
       if (literalPool->find(operand) == literalPool->end())
       {
         (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, false);
@@ -1445,7 +1445,6 @@ void process_BNE_INSTR(string *gpr1, string *gpr2, Arguments *arg)
         (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
       }
 
-      // Ugradi generički call koji će biti patch-ovan u .end
       currSection->code->push_back(0x3a);
       currSection->code->push_back(((0xF << 4) | (gpr1Num & 0x0F)));
       currSection->code->push_back(((gpr2Num << 4) | 0x00));
@@ -1481,7 +1480,7 @@ void process_BNE_INSTR(string *gpr1, string *gpr2, Arguments *arg)
           (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
         }
 
-        // Ugradi instrukciju koja će biti patchovana
+        // Ugradi instrukciju koja ce biti patchovana
         currSection->code->push_back(0x3a); // ldr pc, [pc + offset]
         currSection->code->push_back(((0xF << 4) | (gpr1Num & 0x0F)));
         currSection->code->push_back(((gpr2Num << 4) | 0x00));
@@ -1490,7 +1489,7 @@ void process_BNE_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     }
     else
     {
-      // Simbol nije još definisan
+      // Simbol nije jos definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
         symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
@@ -1525,7 +1524,7 @@ void process_BNE_INSTR(string *gpr1, string *gpr2, Arguments *arg)
 
   if (locationCounter > 4096)
   {
-    cerr << "ERROR: BNE prekoračuje maksimalnu veličinu sekcije!" << endl;
+    cerr << "ERROR: BNE prekoracuje maksimalnu velicinu sekcije!" << endl;
     exit(-1);
   }
 }
@@ -1534,13 +1533,13 @@ void process_BGT_INSTR(string *gpr1, string *gpr2, Arguments *arg)
 {
   if (!arg || !arg->argName || !arg->argType || arg->argName->empty())
   {
-    cerr << "Greška: BGT instrukcija zahteva operand!" << endl;
+    cerr << "Greska: BGT instrukcija zahteva operand!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: BGT mora biti unutar sekcije!" << endl;
+    cerr << "Greska: BGT mora biti unutar sekcije!" << endl;
     return;
   }
   int gpr1Num = stoi(gpr1->substr(1)); // gpr1 je b
@@ -1553,11 +1552,11 @@ void process_BGT_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     unsigned long value = 0;
     try
     {
-      value = stoul(operand, nullptr, 0); // podržava heks, okt, dec
+      value = stoul(operand, nullptr, 0); // podrzava heks, okt, dec
     }
     catch (...)
     {
-      cerr << "Greška: Nevalidna literal vrednost u BGT instrukciji!" << endl;
+      cerr << "Greska: Nevalidna literal vrednost u BGT instrukciji!" << endl;
       return;
     }
 
@@ -1571,7 +1570,7 @@ void process_BGT_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     }
     else
     {
-      // Ne može da stane → koristi bazen literala
+      // Ne moze da stane -> koristi bazen literala
       if (literalPool->find(operand) == literalPool->end())
       {
         (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, false);
@@ -1582,7 +1581,7 @@ void process_BGT_INSTR(string *gpr1, string *gpr2, Arguments *arg)
         (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
       }
 
-      // Ugradi generički call koji će biti patch-ovan u .end
+      // Ugradi genericki call koji ce biti patch-ovan u .end
       currSection->code->push_back(0x3b);
       currSection->code->push_back(((0xF << 4) | (gpr1Num & 0x0F)));
       currSection->code->push_back(((gpr2Num << 4) | 0x00));
@@ -1618,7 +1617,7 @@ void process_BGT_INSTR(string *gpr1, string *gpr2, Arguments *arg)
           (*literalPool)[operand]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
         }
 
-        // Ugradi instrukciju koja će biti patchovana
+        // Ugradi instrukciju koja ce biti patchovana
         currSection->code->push_back(0x3b); // ldr pc, [pc + offset]
         currSection->code->push_back(((0xF << 4) | (gpr1Num & 0x0F)));
         currSection->code->push_back(((gpr2Num << 4) | 0x00));
@@ -1627,7 +1626,7 @@ void process_BGT_INSTR(string *gpr1, string *gpr2, Arguments *arg)
     }
     else
     {
-      // Simbol nije još definisan
+      // Simbol nije jos definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
         symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
@@ -1662,7 +1661,7 @@ void process_BGT_INSTR(string *gpr1, string *gpr2, Arguments *arg)
 
   if (locationCounter > 4096)
   {
-    cerr << "ERROR: BGT prekoračuje maksimalnu veličinu sekcije!" << endl;
+    cerr << "ERROR: BGT prekoracuje maksimalnu velicinu sekcije!" << endl;
     exit(-1);
   }
 }
@@ -1671,7 +1670,7 @@ void process_PUSH_INSTR(string *gpr)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: PUSH instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: PUSH instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
   int regNum = stoi(gpr->substr(1));
@@ -1694,7 +1693,7 @@ void process_POP_INSTR(string *gpr)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: POP instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: POP instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
   int regNum = stoi(gpr->substr(1));
@@ -1717,7 +1716,7 @@ void process_XCHG_INSTR(string *gprS, string *gprD) // proveri code
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: XCHG instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: XCHG instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1743,7 +1742,7 @@ void process_ADD_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: ADD instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: ADD instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
   // gprD <= gprD + gprS;
@@ -1767,7 +1766,7 @@ void process_SUB_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: SUB instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: SUB instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1791,7 +1790,7 @@ void process_MUL_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: MUL instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: MUL instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1815,7 +1814,7 @@ void process_DIV_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: DIV instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: DIV instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1840,7 +1839,7 @@ void process_NOT_INSTR(string *gpr)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: NOT instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: NOT instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1864,7 +1863,7 @@ void process_AND_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: AND instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: AND instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1888,7 +1887,7 @@ void process_OR_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: OR instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: OR instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1913,7 +1912,7 @@ void process_XOR_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: XOR instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: XOR instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1938,7 +1937,7 @@ void process_SHL_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: SHL instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: SHL instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1963,7 +1962,7 @@ void process_SHR_INSTR(string *gprS, string *gprD)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: SHR instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: SHR instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -1987,13 +1986,13 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
 {
   if (!arg || !arg->argName || arg->argName->empty() || !gpr)
   {
-    cerr << "Greška: LD instrukcija zahteva operand i odredišni registar!" << endl;
+    cerr << "Greska: LD instrukcija zahteva operand i odredisni registar!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: LD mora biti unutar sekcije!" << endl;
+    cerr << "Greska: LD mora biti unutar sekcije!" << endl;
     return;
   }
   int dstReg = 0;
@@ -2022,13 +2021,13 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
     }
     catch (...)
     {
-      cerr << "Greška: Nevalidan literal '" << operand << "' u LD instrukciji!" << endl;
+      cerr << "Greska: Nevalidan literal '" << operand << "' u LD instrukciji!" << endl;
       return;
     }
 
     if (value >= 0 && value <= 0xFFF)
     {
-      // Može da stane u 12 bita → direktno kodiranje u instrukciju
+      // Moze da stane u 12 bita -> direktno kodiranje u instrukciju
       currSection->code->push_back(0x91);
       currSection->code->push_back((dstReg << 4) | 0x0);
       currSection->code->push_back((value & 0x0F));
@@ -2036,7 +2035,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
     }
     else
     {
-      // Ne može da stane → koristi literal pool
+      // Ne moze da stane -> koristi literal pool
       if (literalPool->find(operand) == literalPool->end())
       {
         (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, false);
@@ -2047,7 +2046,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
         (*literalPool)[operand]->flink->push_back(
             new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
       }
-      // Ugradi indirektno učitavanje sa PC-relative offsetom
+      // Ugradi indirektno ucitavanje sa PC-relative offsetom
       currSection->code->push_back(0x92);                 // gpr[A]<=mem32[gpr[B]+gpr[C]+D];
       currSection->code->push_back((dstReg << 4) | 0x0F); // B = PC
       currSection->code->push_back(0x00);
@@ -2065,7 +2064,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
 
       if (symbol->ndx == currSection->idSymbolTable)
       {
-        // Simbol definisan u istoj sekciji → koristi PC-relativni offset
+        // Simbol definisan u istoj sekciji -> koristi PC-relativni offset
         int offset = symbol->value - locationCounter - 4;
         currSection->code->push_back(0x91);                 // gpr[A] <= gpr[B] + D
         currSection->code->push_back((dstReg << 4) | 0x0F); // B = PC (regF)
@@ -2074,7 +2073,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
       }
       else
       {
-        // Simbol definisan, ali u drugoj sekciji → koristi literal pool
+        // Simbol definisan, ali u drugoj sekciji -> koristi literal pool
         if (literalPool->find(operand) == literalPool->end())
         {
           (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, true);
@@ -2085,7 +2084,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
           (*literalPool)[operand]->flink->push_back(
               new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
         }
-        // Ugradi indirektno učitavanje iz mem32[PC + D]
+        // Ugradi indirektno ucitavanje iz mem32[PC + D]
         currSection->code->push_back(0x92);                 // gpr[A] <= mem32[gpr[B]+gpr[C]+D]
         currSection->code->push_back((dstReg << 4) | 0x0F); // B = PC
         currSection->code->push_back(0x00);                 // C = 0, D low
@@ -2094,7 +2093,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
     }
     else
     {
-      // Simbol još nije definisan
+      // Simbol jos nije definisan
       if (symbolTable->find(operand) == symbolTable->end())
       {
         symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
@@ -2116,7 +2115,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
 
       helper->setPatchOpcode(0x91);
 
-      // Placeholder instrukcija → biće patchovana u .end
+      // Placeholder instrukcija -> bice patchovana u .end
       currSection->code->push_back(0x92);
       currSection->code->push_back((dstReg << 4) | 0x0F);
       currSection->code->push_back(0x00);
@@ -2130,7 +2129,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
   {
     if (!arg || !arg->argName || arg->argName->empty())
     {
-      cerr << "Greška: Neispravan operand za MEMORY_DIRECT_LITERAL!" << endl;
+      cerr << "Greska: Neispravan operand za MEMORY_DIRECT_LITERAL!" << endl;
       return;
     }
 
@@ -2141,11 +2140,11 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
     }
     catch (...)
     {
-      cerr << "Greška: Neispravan literal u MEMORY_DIRECT_LITERAL!" << endl;
+      cerr << "Greska: Neispravan literal u MEMORY_DIRECT_LITERAL!" << endl;
       return;
     }
 
-    // 1️⃣ Ako može da stane u 12 bita, koristi jednu instrukciju (gpr <= mem32[PC + offset])
+    // Ako moze da stane u 12 bita, koristi jednu instrukciju (gpr <= mem32[PC + offset])
     if (literalValue >= 0 && literalValue <= 0xFFF)
     {
       currSection->code->push_back(0x92);
@@ -2155,7 +2154,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
     }
     else
     {
-      // 2️⃣ Ne može da stane → koristi bazen literala + dve instrukcije
+      //Ne moze da stane -> koristi bazen literala + dve instrukcije
       string key = operand;
 
       // Dodaj u bazen ako ne postoji
@@ -2169,11 +2168,11 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
         (*literalPool)[key]->flink->push_back(new ForwardReferenceTableEntry(currSection->idSymbolTable, locationCounter + 2, 0));
       }
 
-      // Instrukcija 1: dstReg <literal>= mem32[pc + offset] (učitava adresu tj literal iz bazena)
+      // Instrukcija 1: dstReg <literal>= mem32[pc + offset] (ucitava adresu tj literal iz bazena)
       currSection->code->push_back(0x92);
       currSection->code->push_back((dstReg << 4) | 0x0F);
       currSection->code->push_back(0x00);
-      currSection->code->push_back(0x00); // D → patch later
+      currSection->code->push_back(0x00); // D -> patch later
 
       // Instrukcija 2: dstReg <data>= mem32[literal]
       currSection->code->push_back(0x92);
@@ -2198,7 +2197,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
 
       if (symbol->ndx == currSection->idSymbolTable)
       {
-        // Simbol u istoj sekciji → može PC-relativno
+        // Simbol u istoj sekciji -> moze PC-relativno
         int offset = symbol->value - locationCounter - 4;
 
         // Instrukcija 1: ucitavamo vrednost simbola u registar
@@ -2215,7 +2214,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
       }
       else
       {
-        // Simbol iz druge sekcije → literal pool + patch
+        // Simbol iz druge sekcije -> literal pool + patch
         if (literalPool->find(operand) == literalPool->end())
         {
           (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, true);
@@ -2242,7 +2241,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
     }
     else
     {
-      // Simbol nije još poznat → dodaj ga
+      // Simbol nije jos poznat -> dodaj ga
       if (symbolTable->find(operand) == symbolTable->end())
       {
         symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
@@ -2316,21 +2315,21 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
     }
     catch (...)
     {
-      cerr << "Greška: Nevalidan literal u REGISTER_OFFSET_LITERAL!" << endl;
+      cerr << "Greska: Nevalidan literal u REGISTER_OFFSET_LITERAL!" << endl;
       return;
     }
 
     if (value < 0 || value > 0xFFF)
     {
-      cerr << "Greška: Literal u REGISTER_OFFSET_LITERAL mora stati u 12 bita (0 - 4095)!" << endl;
-      exit(-1); // Ili `return;` ako ne želiš da prekidaš program
+      cerr << "Greska: Literal u REGISTER_OFFSET_LITERAL mora stati u 12 bita (0 - 4095)!" << endl;
+      exit(-1); // Ili `return;` ako ne zelis da prekidas program
     }
 
-    // Generiši instrukciju direktno
+    // Generisi instrukciju direktno
     currSection->code->push_back(0x92);
     currSection->code->push_back((dstReg << 4) | srcReg);      // B = bazni registar
-    currSection->code->push_back((0x0 << 4) | (value & 0x0F)); // C = 0, D (niži 4 bita)
-    currSection->code->push_back((value >> 4) & 0xFF);         // D (viših 8 bita)
+    currSection->code->push_back((0x0 << 4) | (value & 0x0F)); // C = 0, D (nizi 4 bita)
+    currSection->code->push_back((value >> 4) & 0xFF);         // D (visih 8 bita)
 
     break;
   }
@@ -2342,7 +2341,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
   }
 
   default:
-    cerr << "Greška: Nepoznat režim adresiranja za LD instrukciju!" << endl;
+    cerr << "Greska: Nepoznat rezim adresiranja za LD instrukciju!" << endl;
     return;
   }
 
@@ -2350,7 +2349,7 @@ void process_LD_INSTR(Arguments *arg, string *gpr)
 
   if (locationCounter > 4096)
   {
-    cerr << "ERROR: LD prekoračuje maksimalnu veličinu sekcije!" << endl;
+    cerr << "ERROR: LD prekoracuje maksimalnu velicinu sekcije!" << endl;
     exit(-1);
   }
 }
@@ -2359,13 +2358,13 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
 {
   if (!arg || !arg->argName || !gpr)
   {
-    cerr << "Greška: ST instrukcija zahteva operand i izvorni registar!" << endl;
+    cerr << "Greska: ST instrukcija zahteva operand i izvorni registar!" << endl;
     return;
   }
 
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: ST mora biti unutar sekcije!" << endl;
+    cerr << "Greska: ST mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -2405,7 +2404,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
     }
     catch (...)
     {
-      cerr << "Greška: Nevalidna literal vrednost u ST instrukciji!" << endl;
+      cerr << "Greska: Nevalidna literal vrednost u ST instrukciji!" << endl;
       return;
     }
 
@@ -2449,7 +2448,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
 
       if (symbol->ndx == currSection->idSymbolTable)
       {
-        // Simbol iz iste sekcije → može direktno da se ugradi kao PC-relative offset
+        // Simbol iz iste sekcije -> moze direktno da se ugradi kao PC-relative offset
         int offset = symbol->value - locationCounter - 4;
 
         currSection->code->push_back(0x80); // mem32[gpr[A] + gpr[B] + D] <= gpr[C]
@@ -2459,7 +2458,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
       }
       else
       {
-        // Simbol iz druge sekcije → koristi literal pool i patch kasnije
+        // Simbol iz druge sekcije -> koristi literal pool i patch kasnije
         if (literalPool->find(operand) == literalPool->end())
         {
           (*literalPool)[operand] = new LiteralPoolEntry(currSection->idSymbolTable, locationCounter + 2, true);
@@ -2475,12 +2474,12 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
         currSection->code->push_back(0x82);                 // indirektno preko mem[mem[gpr[PC]+D]]
         currSection->code->push_back(0xf0);                 // gpr[A]=PC, gpr[B]=0
         currSection->code->push_back((srcReg << 4) | 0x00); // C = srcReg
-        currSection->code->push_back(0x00);                 // offset → patch later
+        currSection->code->push_back(0x00);                 // offset -> patch later
       }
     }
     else
     {
-      // Simbol nije još definisan → dodaj ga i koristi literal pool
+      // Simbol nije jos definisan -> dodaj ga i koristi literal pool
       if (symbolTable->find(operand) == symbolTable->end())
       {
         symbolTable->insert({operand, new SymbolTableEntry(operand, 2, 1, 0, -1, false)});
@@ -2506,7 +2505,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
       currSection->code->push_back(0x82);
       currSection->code->push_back(0xf0);
       currSection->code->push_back((srcReg << 4) | 0x00);
-      currSection->code->push_back(0x00); // D → patch
+      currSection->code->push_back(0x00); // D -> patch
     }
 
     break;
@@ -2529,7 +2528,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
 
     if (offset < 0 || offset > 0xFFF)
     {
-      cerr << "Greška: Literal offset mora biti 12-bitni u ST!" << endl;
+      cerr << "Greska: Literal offset mora biti 12-bitni u ST!" << endl;
       return;
     }
 
@@ -2550,7 +2549,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
 
     if (it == symbolTable->end() || it->second->value == -1)
     {
-      cerr << "Greška: Simbol '" << symName << "' nije poznat za ST instrukciju!" << endl;
+      cerr << "Greska: Simbol '" << symName << "' nije poznat za ST instrukciju!" << endl;
       return;
     }
 
@@ -2558,7 +2557,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
 
     if (offset < 0 || offset > 0xFFF)
     {
-      cerr << "Greška: Offset za simbol '" << symName << "' ne može da stane u 12 bita!" << endl;
+      cerr << "Greska: Offset za simbol '" << symName << "' ne moze da stane u 12 bita!" << endl;
       return;
     }
 
@@ -2572,12 +2571,12 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
   case IMMEDIATE_LITERAL:
   case IMMEDIATE_SYMBOL:
   {
-    cerr << "Greška: ST instrukcija ne podržava neposredno adresiranje (IMMEDIATE)!" << endl;
+    cerr << "Greska: ST instrukcija ne podrzava neposredno adresiranje (IMMEDIATE)!" << endl;
     exit(-1);
   }
 
   default:
-    cerr << "Greška: Nepoznat režim adresiranja za ST instrukciju!" << endl;
+    cerr << "Greska: Nepoznat rezim adresiranja za ST instrukciju!" << endl;
     exit(-1);
   }
 
@@ -2585,7 +2584,7 @@ void process_ST_INSTR(string *gpr, Arguments *arg)
 
   if (locationCounter > 4096)
   {
-    cerr << "ERROR: ST prekoračuje maksimalnu veličinu sekcije!" << endl;
+    cerr << "ERROR: ST prekoracuje maksimalnu velicinu sekcije!" << endl;
     exit(-1);
   }
 }
@@ -2594,7 +2593,7 @@ void process_CSRRD_INSTR(string *csr, string *gpr)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: CSRRD instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: CSRRD instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -2609,11 +2608,11 @@ void process_CSRRD_INSTR(string *csr, string *gpr)
   }
   else if (*csr != "%status")
   {
-    cerr << "Greška: Nepoznat CSR registar: " << *csr << endl;
+    cerr << "Greska: Nepoznat CSR registar: " << *csr << endl;
     return;
   }
 
-  int dNum = stoi(gpr->substr(1)); // Parsira "rX" → X
+  int dNum = stoi(gpr->substr(1)); // Parsira "rX" -> X
 
   currSection->code->push_back(0x90);                 // Op kod za CSRRD
   currSection->code->push_back(((dNum << 4) | sNum)); // AAAA = gpr, BBBB = csr
@@ -2633,7 +2632,7 @@ void process_CSRWR_INSTR(string *gpr, string *csr)
 {
   if (!currSection || !currSection->code)
   {
-    cerr << "Greška: CSRWR instrukcija mora biti unutar sekcije!" << endl;
+    cerr << "Greska: CSRWR instrukcija mora biti unutar sekcije!" << endl;
     return;
   }
 
@@ -2648,11 +2647,11 @@ void process_CSRWR_INSTR(string *gpr, string *csr)
   }
   else if (*csr != "%status")
   {
-    cerr << "Greška: Nepoznat CSR registar: " << *csr << endl;
+    cerr << "Greska: Nepoznat CSR registar: " << *csr << endl;
     return;
   }
 
-  int dNum = stoi(gpr->substr(1)); // Parsira "rX" → X
+  int dNum = stoi(gpr->substr(1)); // Parsira "rX" -> X
 
   currSection->code->push_back(0x94);                 // Op kod za CSRRD
   currSection->code->push_back(((dNum << 4) | sNum)); // AAAA = gpr, BBBB = csr

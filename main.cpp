@@ -16,8 +16,8 @@ int main(int argc, char *argv[])
 {
   if (argc < 2)
   {
-    cerr << "Greška: Nisu prosleđeni argumenti.\n";
-    cerr << "Korišćenje: ./assembler [-o output.o] input.s\n";
+    cerr << "Greska: Nisu prosledjeni argumenti.\n";
+    cerr << "Koriscenje: ./assembler [-o output.o] input.s\n";
     return -1;
   }
   if (strcmp(argv[1], "-o") == 0)

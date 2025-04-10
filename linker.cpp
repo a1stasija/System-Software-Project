@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     {
       string currentArg = argv[i];
 
-      // Da li argument definiše smeštanje sekcije?
+      // Da li argument definiše smestanje sekcije?
       if (currentArg.rfind("-place=", 0) == 0)
       {
         string placeInfo = currentArg.substr(7); // Uklanjamo "-place="
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
           string secName = placeInfo.substr(0, atSymbol);
           string hexAddr = placeInfo.substr(atSymbol + 1);
 
-          // Ako počinje sa "0x", preskočimo prefiks
+          // Ako pocinje sa "0x", preskocimo prefiks
           if (hexAddr.rfind("0x", 0) == 0)
           {
             hexAddr = hexAddr.substr(2);
@@ -132,13 +132,13 @@ int main(int argc, char *argv[])
           }
           catch (exception &e)
           {
-            cerr << "Greška: Nevalidna heksadekadna vrednost za -place: " << hexAddr << endl;
+            cerr << "Greska: Nevalidna heksadekadna vrednost za -place: " << hexAddr << endl;
             exit(-1);
           }
 
           if (placeReqs->count(secName))
           {
-            cerr << "Greška: Sekcija '" << secName << "' je više puta definisana u -place opciji!" << endl;
+            cerr << "Greska: Sekcija '" << secName << "' je vise puta definisana u -place opciji!" << endl;
             exit(-1);
           }
 
@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
 
     if (prev->base + prev->size > curr->base)
     {
-      cerr << "Greška: Sekcije '" << prev->name << "' i '" << curr->name << "' se preklapaju!" << endl;
+      cerr << "Greska: Sekcije '" << prev->name << "' i '" << curr->name << "' se preklapaju!" << endl;
       exit(-1);
     }
   }
@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
           }
         }
 
-        // Ažuriranje asmSections koje su u tim sekcijama
+        // Azuriranje asmSections koje su u tim sekcijama
         for (auto &otherAsm : *asmSections)
         {
           if (!otherAsm->placed && otherAsm->sectionName != asmInfo->sectionName && otherAsm->base > sec->base)
@@ -344,13 +344,12 @@ int main(int argc, char *argv[])
       currFile.read(reinterpret_cast<char *>(&value), sizeof(unsigned int));
       currFile.read(reinterpret_cast<char *>(&type), sizeof(unsigned int));
 
-      //cout << "DEBUG: Pročitavam simbol " << symbName << ", oldSecNdx = " << oldSecNdx << ", fileId = " << fileId << ", bind = " << type << endl;
 
       if (type == 0)
       { // GLBL
         if (defined.count(symbName) && (oldSymId) != (oldSecNdx))
         {
-          cerr << "Greška: Simbol '" << symbName << "' je višestruko definisan!" << endl;
+          cerr << "Greska: Simbol '" << symbName << "' je visestruko definisan!" << endl;
           exit(-1);
         }
         defined.insert(symbName);
@@ -366,7 +365,7 @@ int main(int argc, char *argv[])
       // Ubacujemo simbol ako je globalni
       if (type == 0 && oldSecNdx != oldSymId)
       {
-        // Pronađi odgovarajući unos u asmSections da odrediš novu bazu
+        // Pronadji odgovarajuci unos u asmSections da odrediš novu bazu
         for (auto asmInfo : *asmSections)
         {
           if (asmInfo->asmIdFile == fileId && asmInfo->asmIdSymb == oldSecNdx)
@@ -386,15 +385,15 @@ int main(int argc, char *argv[])
       }
     }
   }
-  printLinkerSymbolTable();
-  printDefinedAndUndefined();
-  printAsmSections();
-  printLinkerSectionsCode();
+  //printLinkerSymbolTable();
+  //printDefinedAndUndefined();
+  //printAsmSections();
+  //printLinkerSectionsCode();
 
   // provera da li postoje nedefinisani simboli
   if (!undefined.empty())
   {
-    cerr << "Greška: Postoje nedefinisani simboli: ";
+    cerr << "Greska: Postoje nedefinisani simboli: ";
     for (auto symb : undefined)
     {
       cerr << symb << " ";
@@ -434,7 +433,7 @@ int main(int argc, char *argv[])
         inFile.read(reinterpret_cast<char *>(&addend), sizeof(unsigned int));
         inFile.read(reinterpret_cast<char *>(&type), sizeof(unsigned int));
 
-        // Nađi baznu adresu sekcije u kojoj se vrši relokacija
+        // Nadji baznu adresu sekcije u kojoj se vrsi relokacija
         AssemblerSectionInfo *targetSection = nullptr;
         for (auto asmInfo : *asmSections)
         {
@@ -447,14 +446,14 @@ int main(int argc, char *argv[])
 
         if (!targetSection)
         {
-          cerr << "Greška: Ne mogu da pronađem sekciju za relokaciju!" << endl;
+          cerr << "Greska: Ne mogu da pronadjem sekciju za relokaciju!" << endl;
           exit(-1);
         }
 
-        // Nađi vrednost simbola
+        // Nadji vrednost simbola
         if (!linkerSymbolTable->count(symbName))
         {
-          cerr << "Greška: Simbol '" << symbName << "' nije pronađen tokom razrešavanja relokacija!" << endl;
+          cerr << "Greska: Simbol '" << symbName << "' nije pronadjen tokom razresavanja relokacija!" << endl;
           exit(-1);
         }
 
@@ -462,7 +461,7 @@ int main(int argc, char *argv[])
         unsigned long symbVal = 0;
         if (s->type == 0)
         {
-          // Nađi bazu te sekcije (gde je simbol definisan)
+          // Nadji bazu te sekcije (gde je simbol definisan)
           AssemblerSectionInfo *defSection = nullptr;
           for (auto asmInfo : *asmSections)
           {
@@ -474,7 +473,7 @@ int main(int argc, char *argv[])
           }
           if (!defSection)
           {
-            cerr << "Greška: Ne mogu da pronađem sekciju u kojoj je simbol '" << symbName << "' definisan!" << endl;
+            cerr << "Greska: Ne mogu da pronadjem sekciju u kojoj je simbol '" << symbName << "' definisan!" << endl;
             exit(-1);
           }
           symbVal = defSection->base;
@@ -516,7 +515,7 @@ int main(int argc, char *argv[])
   ofstream outFile(outputName);
   if (!outFile.is_open())
   {
-    cerr << "Greška: Ne mogu da otvorim izlazni fajl: " << outputName << endl;
+    cerr << "Greska: Ne mogu da otvorim izlazni fajl: " << outputName << endl;
     exit(-1);
   }
 
