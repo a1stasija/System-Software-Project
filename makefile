@@ -18,13 +18,15 @@ YACC_OUTPUT_H = misc/parser.tab.h
 ASM_SRC = src/assembler.cpp
 ASM_MAIN_SRC = src/main.cpp
 LINKER_SRC = src/linker.cpp
+EMULATOR_SRC = src/emulator.cpp
 
 # Izvršni fajlovi
 ASSEMBLER_EXEC = assembler
 LINKER_EXEC = linker
+EMULATOR_EXEC = emulator
 
 # Podrazumevana meta
-all: build-assembler build-linker
+all: build-assembler build-linker build-emulator
 
 # Metoda za build asemblera
 build-assembler: $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(ASM_SRC) $(ASM_MAIN_SRC)
@@ -34,6 +36,9 @@ build-assembler: $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(ASM_SRC) $(ASM_MAIN_SRC)
 # Metoda za build linkera
 build-linker: $(LINKER_SRC)
 	$(CC) $(CXXFLAGS) $^ -o $(LINKER_EXEC)
+
+build-emulator: $(EMULATOR_SRC)
+	$(CC) $(CXXFLAGS) $^ -o $(EMULATOR_EXEC)
 
 # Generiši parser
 $(YACC_OUTPUT_C): $(YACC_FILE)
@@ -46,7 +51,7 @@ $(LEX_OUTPUT): $(LEX_FILE)
 # Čišćenje svega
 clean:
 	rm -f $(LEX_OUTPUT) $(YACC_OUTPUT_C) $(YACC_OUTPUT_H)
-	rm -f $(ASSEMBLER_EXEC) $(LINKER_EXEC)
+	rm -f $(ASSEMBLER_EXEC) $(LINKER_EXEC) $(EMULATOR_EXEC)
 	rm -f *.o *.hex *.txt
 
 

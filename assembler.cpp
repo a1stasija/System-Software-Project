@@ -507,7 +507,7 @@ void process_END_DIR()
     literalInsertionOrder.clear();
   }
 
-  // 2️⃣ BACKPATCHING ZA OSTALE FORWARD REFERENCE (mora d aostane zbog .word direktive)
+  // 2️⃣ BACKPATCHING ZA OSTALE FORWARD REFERENCE (mora da ostane zbog .word direktive)
   for (auto &entry : *symbolTable)
   {
     SymbolTableEntry *symbol = entry.second;
@@ -531,12 +531,17 @@ void process_END_DIR()
         {
           Section *sec = (*allSections)[forwardRef->section];
 
+          //cout << "Napravljena relokacija za simbol " << symbol->name << " sa ID: "<< symbol->id<<endl;
+          //cout << "relocID: "<<calculate_reloc_idSymbol(symbol)<<endl;
+
           RelocationTableEntry *relocEntry = new RelocationTableEntry(
               forwardRef->offset,
               forwardRef->type,
               calculate_addend(forwardRef->type, symbol),
               forwardRef->section,
               calculate_reloc_idSymbol(symbol));
+
+            
 
           sec->relocationTableForSection->push_back(relocEntry);
         }
@@ -547,6 +552,10 @@ void process_END_DIR()
       }
 
       it = symbol->flink->erase(it);
+    }
+    if(symbol->bind == 0 && symbol->value == -1){
+      cerr << "Greška: Globalni simbol " << symbol->name << " nije definisan u fajlu!" << endl;
+      exit(-1);
     }
   }
 
@@ -684,7 +693,7 @@ void process_WORD_DIR(Arguments *args)
         // Simbol nije poznat → Dodajemo ga u tabelu simbola ako već ne postoji
         if (symbolTable->find(arg) == symbolTable->end())
         {
-          symbolTable->insert({arg, new SymbolTableEntry(arg, 1, 1, 0, -1, false)});
+          symbolTable->insert({arg, new SymbolTableEntry(arg, 2, 1, 0, -1, false)});
         }
 
         // Dodajemo u tabelu ForwardReferenceTable sa type = 1
